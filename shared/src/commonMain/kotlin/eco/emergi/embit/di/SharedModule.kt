@@ -1,0 +1,89 @@
+package eco.emergi.embit.di
+
+import eco.emergi.embit.data.local.DatabaseDriverFactory
+import eco.emergi.embit.data.local.EmbitDatabase
+import eco.emergi.embit.data.repositories.BatteryRepositoryImpl
+import eco.emergi.embit.domain.repositories.BatteryMonitorServiceFactory
+import eco.emergi.embit.domain.repositories.IBatteryMonitorService
+import eco.emergi.embit.domain.repositories.IBatteryRepository
+import eco.emergi.embit.domain.usecases.*
+import org.koin.core.module.Module
+import org.koin.core.module.dsl.factoryOf
+import org.koin.core.module.dsl.singleOf
+import org.koin.dsl.bind
+import org.koin.dsl.module
+
+/**
+ * Shared Koin module for common dependencies.
+ * Platform-specific modules will provide DatabaseDriverFactory and BatteryMonitorServiceFactory.
+ */
+val sharedModule = module {
+    // Database
+    single {
+        val driverFactory: DatabaseDriverFactory = get()
+        EmbitDatabase(driverFactory.createDriver())
+    }
+
+    // Repositories
+    single<IBatteryRepository> {
+        BatteryRepositoryImpl(get())
+    }
+
+    // Battery Monitor Service
+    single<IBatteryMonitorService> {
+        val factory: BatteryMonitorServiceFactory = get()
+        factory.create()
+    }
+
+    // Use Cases
+    factory {
+        MonitorBatteryUseCase(
+            monitorService = get(),
+            repository = get()
+        )
+    }
+
+    factory {
+        GetBatteryHistoryUseCase(
+            repository = get()
+        )
+    }
+
+    factory {
+        CalculateBatteryStatisticsUseCase(
+            repository = get()
+        )
+    }
+
+    factory {
+        ManageBatteryDataUseCase(
+            repository = get()
+        )
+    }
+
+    factory {
+        AnalyzeBatteryHealthUseCase(
+            repository = get()
+        )
+    }
+
+    factory {
+        PredictBatteryLifeUseCase(
+            repository = get()
+        )
+    }
+
+    factory {
+        GenerateChargingRecommendationsUseCase(
+            repository = get()
+        )
+    }
+}
+
+/**
+ * Helper function to initialize Koin with platform-specific module.
+ * Platform modules must provide:
+ * - DatabaseDriverFactory
+ * - BatteryMonitorServiceFactory
+ */
+expect fun platformModule(): Module

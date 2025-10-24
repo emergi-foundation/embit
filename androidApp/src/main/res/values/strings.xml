@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Embit</string>
+
+    <!-- Navigation -->
+    <string name="nav_monitor">Monitor</string>
+    <string name="nav_history">History</string>
+    <string name="nav_health">Health</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Battery States -->
+    <string name="battery_charging">Charging</string>
+    <string name="battery_discharging">Discharging</string>
+    <string name="battery_full">Full</string>
+    <string name="battery_not_charging">Not Charging</string>
+    <string name="battery_unknown">Unknown</string>
+
+    <!-- Common -->
+    <string name="refresh">Refresh</string>
+    <string name="loading">Loading…</string>
+    <string name="error">Error</string>
+
+    <!-- Monitor Screen -->
+    <string name="current_status">Current Status</string>
+    <string name="last_updated">Last updated: %s</string>
+
+    <!-- Settings -->
+    <string name="export_data">Export Data</string>
+    <string name="import_data">Import Data</string>
+    <string name="cleanup_old_data">Cleanup Old Data</string>
+    <string name="clear_all_data">Clear All Data</string>
+    <string name="confirm_clear_data">Are you sure you want to delete all battery data? This cannot be undone.</string>
+
+    <!-- Permissions -->
+    <string name="permission_required">Permission Required</string>
+    <string name="battery_permission_description">Battery monitoring requires permission to access battery information.</string>
+</resources>

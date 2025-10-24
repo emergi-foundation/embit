@@ -1,0 +1,129 @@
+-- Battery Reading Table
+CREATE TABLE IF NOT EXISTS BatteryReading (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    voltageMillivolts INTEGER NOT NULL,
+    amperageMicroamps INTEGER NOT NULL,
+    temperatureCelsius REAL,
+    batteryPercentage INTEGER NOT NULL,
+    batteryState TEXT NOT NULL,
+    chargingType TEXT
+);
+
+-- Index on timestamp for efficient time-range queries
+CREATE INDEX IF NOT EXISTS idx_battery_reading_timestamp ON BatteryReading(timestamp);
+
+-- Index on battery state for filtering
+CREATE INDEX IF NOT EXISTS idx_battery_reading_state ON BatteryReading(batteryState);
+
+-- Insert a battery reading
+insertReading:
+INSERT INTO BatteryReading (
+    timestamp,
+    voltageMillivolts,
+    amperageMicroamps,
+    temperatureCelsius,
+    batteryPercentage,
+    batteryState,
+    chargingType
+) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- Get the most recent reading
+getLatestReading:
+SELECT * FROM BatteryReading
+ORDER BY timestamp DESC
+LIMIT 1;
+
+-- Get readings in a time range
+getReadingsInRange:
+SELECT * FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime
+ORDER BY timestamp DESC
+LIMIT :limit;
+
+-- Get all readings in time range (no limit)
+getAllReadingsInRange:
+SELECT * FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime
+ORDER BY timestamp ASC;
+
+-- Get reading count
+getReadingCount:
+SELECT COUNT(*) FROM BatteryReading;
+
+-- Get reading count in range
+getReadingCountInRange:
+SELECT COUNT(*) FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime;
+
+-- Delete readings older than timestamp
+deleteReadingsOlderThan:
+DELETE FROM BatteryReading
+WHERE timestamp < :before;
+
+-- Delete all readings
+deleteAllReadings:
+DELETE FROM BatteryReading;
+
+-- Get aggregated statistics for a time period
+getStatistics:
+SELECT
+    COUNT(*) AS totalCount,
+    AVG(voltageMillivolts) AS avgVoltage,
+    AVG(amperageMicroamps) AS avgAmperage,
+    AVG(temperatureCelsius) AS avgTemperature,
+    AVG(batteryPercentage) AS avgBatteryPercentage,
+    MAX(voltageMillivolts) AS maxVoltage,
+    MAX(amperageMicroamps) AS maxAmperage,
+    MIN(voltageMillivolts) AS minVoltage,
+    MIN(amperageMicroamps) AS minAmperage
+FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime;
+
+-- Get charge count (number of times charging started)
+getChargeCount:
+SELECT COUNT(*)
+FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime
+  AND batteryState LIKE 'Charging%';
+
+-- Get readings grouped by time intervals for charting
+-- This query gets one reading per interval
+getReadingsByInterval:
+SELECT
+    timestamp,
+    voltageMillivolts,
+    amperageMicroamps,
+    temperatureCelsius,
+    batteryPercentage,
+    batteryState
+FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime
+  AND id IN (
+    SELECT MIN(id)
+    FROM BatteryReading
+    WHERE timestamp BETWEEN :startTime AND :endTime
+    GROUP BY (timestamp / :intervalSeconds)
+  )
+ORDER BY timestamp ASC;
+
+-- Get average power consumption for time intervals
+getAveragePowerByInterval:
+SELECT
+    (timestamp / :intervalSeconds) * :intervalSeconds AS intervalStart,
+    AVG((voltageMillivolts / 1000.0) * (amperageMicroamps / 1000000.0) * 1000.0) AS avgPowerMilliwatts,
+    COUNT(*) AS sampleCount
+FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime
+GROUP BY (timestamp / :intervalSeconds)
+ORDER BY intervalStart ASC;
+
+-- Get state duration statistics
+getStateDurations:
+SELECT
+    batteryState,
+    COUNT(*) * :sampleInterval AS durationSeconds,
+    COUNT(*) AS readingCount
+FROM BatteryReading
+WHERE timestamp BETWEEN :startTime AND :endTime
+GROUP BY batteryState;

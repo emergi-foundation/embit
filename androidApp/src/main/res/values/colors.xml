@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 colors are defined in Compose theme -->
+    <color name="green_primary">#2E7D32</color>
+    <color name="green_secondary">#66BB6A</color>
+    <color name="green_tertiary">#81C784</color>
+
+    <color name="charging_green">#4CAF50</color>
+    <color name="discharging_red">#F44336</color>
+    <color name="full_battery_blue">#2196F3</color>
+    <color name="warning_orange">#FF9800</color>
+</resources>

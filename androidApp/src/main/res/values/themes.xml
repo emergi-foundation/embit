@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Theme for Embit - using Material 3 from Compose -->
+    <style name="Theme.Embit" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/green_primary</item>
+    </style>
+</resources>
