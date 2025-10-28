@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.navigation.compose)
+    implementation("androidx.compose.material:material-icons-extended:1.7.1")
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // WorkManager
@@ -92,6 +93,9 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // DateTime
+    implementation(libs.kotlinx.datetime)
 
     // Testing
     testImplementation(libs.kotlin.test)
