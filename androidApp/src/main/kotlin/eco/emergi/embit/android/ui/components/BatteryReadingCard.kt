@@ -73,13 +73,13 @@ fun BatteryReadingCard(
                 MetricItem(
                     label = "Voltage",
                     value = String.format("%.2f V", reading.voltageVolts),
-                    icon = Icons.Default.BoltCircle
+                    icon = Icons.Default.Bolt
                 )
 
                 MetricItem(
                     label = "Current",
                     value = String.format("%.0f mA", reading.amperageMilliamps),
-                    icon = Icons.Default.ElectricBolt
+                    icon = Icons.Default.Bolt
                 )
             }
 

@@ -43,7 +43,7 @@ fun BatteryLifePredictionCard(
                 )
 
                 Icon(
-                    imageVector = if (prediction.isCharging) Icons.Default.BatteryCharging else Icons.Default.Battery,
+                    imageVector = if (prediction.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
