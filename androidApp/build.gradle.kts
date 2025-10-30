@@ -23,6 +23,31 @@ android {
         }
     }
 
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            versionNameSuffix = "-dev"
+            buildConfigField("String", "ENVIRONMENT", "\"development\"")
+            buildConfigField("boolean", "ENABLE_LOGGING", "true")
+            buildConfigField("String", "API_BASE_URL", "\"https://dev-api.embit.eco\"")
+        }
+        create("staging") {
+            dimension = "environment"
+            versionNameSuffix = "-staging"
+            buildConfigField("String", "ENVIRONMENT", "\"staging\"")
+            buildConfigField("boolean", "ENABLE_LOGGING", "true")
+            buildConfigField("String", "API_BASE_URL", "\"https://staging-api.embit.eco\"")
+        }
+        create("production") {
+            dimension = "environment"
+            // No suffix for production
+            buildConfigField("String", "ENVIRONMENT", "\"production\"")
+            buildConfigField("boolean", "ENABLE_LOGGING", "false")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.embit.eco\"")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -47,6 +72,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

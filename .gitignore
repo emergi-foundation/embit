@@ -12,3 +12,16 @@
 /captures
 .externalNativeBuild
 .cxx
+
+# Firebase
+google-services.json
+firebase-credentials.json
+
+# Signing
+*.jks
+*.keystore
+keystore.properties
+
+# Build outputs
+*.apk
+*.aab

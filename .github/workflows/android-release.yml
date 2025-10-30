@@ -1,0 +1,98 @@
+name: Android Production Release
+
+on:
+  push:
+    tags:
+      - 'v-*'  # Triggers on tags like v-2.1.0
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Extract version from tag (e.g., v-2.1.0 -> 2.1.0)
+          VERSION=${GITHUB_REF#refs/tags/v-}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      # Uncomment when you have a keystore for signing
+      # - name: Decode Keystore
+      #   run: |
+      #     echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
+      #
+      # - name: Build Production Signed Release APK
+      #   env:
+      #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      #   run: |
+      #     ./gradlew :androidApp:assembleProductionRelease \
+      #       -Pandroid.injected.signing.store.file=$PWD/release-keystore.jks \
+      #       -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+      #       -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+      #       -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+
+      - name: Build Production Release APK (unsigned)
+        run: ./gradlew :androidApp:assembleProductionRelease --stacktrace
+
+      - name: Upload Production Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: embit-production-release-apk
+          path: androidApp/build/outputs/apk/production/release/androidApp-production-release-unsigned.apk
+          retention-days: 365
+
+      # Uncomment after Firebase is set up
+      # - name: Upload to Firebase App Distribution (Staging Group)
+      #   uses: wzieba/Firebase-Distribution-Github-Action@v1
+      #   with:
+      #     appId: ${{ secrets.FIREBASE_APP_ID }}
+      #     serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
+      #     groups: staging-testers
+      #     file: androidApp/build/outputs/apk/production/release/androidApp-production-release-unsigned.apk
+      #     releaseNotes: |
+      #       Production Release ${{ steps.version.outputs.version }}
+      #
+      #       Ready for final testing before Play Store release.
+      #
+      #       Changes in this release:
+      #       ${{ github.event.head_commit.message }}
+
+      - name: Build summary
+        run: |
+          echo "### 🎉 Production Release Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Flavor:** production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Type:** release" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download APK from artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "2. Distribute to staging testers via Firebase" >> $GITHUB_STEP_SUMMARY
+          echo "3. After approval, promote to Google Play Store" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Note:** APK is currently unsigned. Set up signing for production releases." >> $GITHUB_STEP_SUMMARY
