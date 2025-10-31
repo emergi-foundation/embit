@@ -42,14 +42,14 @@ jobs:
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > androidApp/google-services.json
 
-      - name: Build Staging Release APK
-        run: ./gradlew :androidApp:assembleStagingRelease --stacktrace
+      - name: Build Staging Debug APK
+        run: ./gradlew :androidApp:assembleStagingDebug --stacktrace
 
-      - name: Upload Staging Release APK
+      - name: Upload Staging Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: embit-staging-release-apk
-          path: androidApp/build/outputs/apk/staging/release/androidApp-staging-release-unsigned.apk
+          name: embit-staging-debug-apk
+          path: androidApp/build/outputs/apk/staging/debug/androidApp-staging-debug.apk
           retention-days: 90
 
       - name: Upload to Firebase App Distribution (QA)
@@ -58,7 +58,7 @@ jobs:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
           groups: qa-team
-          file: androidApp/build/outputs/apk/staging/release/androidApp-staging-release-unsigned.apk
+          file: androidApp/build/outputs/apk/staging/debug/androidApp-staging-debug.apk
           releaseNotes: |
             QA Release ${{ steps.version.outputs.version }}
 
@@ -67,11 +67,11 @@ jobs:
 
       - name: Build summary
         run: |
-          echo "### 🚀 QA Release Built" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 QA Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** ${{ steps.version.outputs.version }}-staging" >> $GITHUB_STEP_SUMMARY
           echo "- **Flavor:** staging" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Type:** release" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Type:** debug (easier debugging, no minification)" >> $GITHUB_STEP_SUMMARY
           echo "- **Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
