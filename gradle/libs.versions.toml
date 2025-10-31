@@ -16,6 +16,7 @@ koin = "4.0.0"
 koin-android = "4.0.0"
 hilt = "2.52"
 hilt-navigation = "1.2.0"
+google-services = "4.4.2"
 
 [libraries]
 # Kotlin
@@ -88,3 +89,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }

@@ -48,19 +48,18 @@ jobs:
           path: androidApp/build/outputs/apk/staging/release/androidApp-staging-release-unsigned.apk
           retention-days: 90
 
-      # Uncomment after Firebase is set up
-      # - name: Upload to Firebase App Distribution (QA)
-      #   uses: wzieba/Firebase-Distribution-Github-Action@v1
-      #   with:
-      #     appId: ${{ secrets.FIREBASE_APP_ID }}
-      #     serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
-      #     groups: qa-team
-      #     file: androidApp/build/outputs/apk/staging/release/androidApp-staging-release-unsigned.apk
-      #     releaseNotes: |
-      #       QA Release ${{ steps.version.outputs.version }}
-      #
-      #       Changes in this build:
-      #       ${{ github.event.head_commit.message }}
+      - name: Upload to Firebase App Distribution (QA)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
+          groups: qa-team
+          file: androidApp/build/outputs/apk/staging/release/androidApp-staging-release-unsigned.apk
+          releaseNotes: |
+            QA Release ${{ steps.version.outputs.version }}
+
+            Changes in this build:
+            ${{ github.event.head_commit.message }}
 
       - name: Build summary
         run: |
@@ -72,6 +71,6 @@ jobs:
           echo "- **Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Download APK from artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "2. Distribute to QA team via Firebase (after setup)" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Distributed to QA team via Firebase App Distribution" >> $GITHUB_STEP_SUMMARY
+          echo "2. QA team will receive email with download link" >> $GITHUB_STEP_SUMMARY
           echo "3. Test on staging environment" >> $GITHUB_STEP_SUMMARY

@@ -65,21 +65,20 @@ jobs:
           path: androidApp/build/outputs/apk/production/release/androidApp-production-release-unsigned.apk
           retention-days: 365
 
-      # Uncomment after Firebase is set up
-      # - name: Upload to Firebase App Distribution (Staging Group)
-      #   uses: wzieba/Firebase-Distribution-Github-Action@v1
-      #   with:
-      #     appId: ${{ secrets.FIREBASE_APP_ID }}
-      #     serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
-      #     groups: staging-testers
-      #     file: androidApp/build/outputs/apk/production/release/androidApp-production-release-unsigned.apk
-      #     releaseNotes: |
-      #       Production Release ${{ steps.version.outputs.version }}
-      #
-      #       Ready for final testing before Play Store release.
-      #
-      #       Changes in this release:
-      #       ${{ github.event.head_commit.message }}
+      - name: Upload to Firebase App Distribution (Staging Group)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
+          groups: staging-testers
+          file: androidApp/build/outputs/apk/production/release/androidApp-production-release-unsigned.apk
+          releaseNotes: |
+            Production Release ${{ steps.version.outputs.version }}
+
+            Ready for final testing before Play Store release.
+
+            Changes in this release:
+            ${{ github.event.head_commit.message }}
 
       - name: Build summary
         run: |
@@ -91,8 +90,8 @@ jobs:
           echo "- **Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Download APK from artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "2. Distribute to staging testers via Firebase" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Distributed to staging testers via Firebase App Distribution" >> $GITHUB_STEP_SUMMARY
+          echo "2. Staging testers will receive email with download link" >> $GITHUB_STEP_SUMMARY
           echo "3. After approval, promote to Google Play Store" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "⚠️ **Note:** APK is currently unsigned. Set up signing for production releases." >> $GITHUB_STEP_SUMMARY
