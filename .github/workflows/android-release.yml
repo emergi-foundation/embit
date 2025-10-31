@@ -74,7 +74,7 @@ jobs:
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
-          groups: staging-testers
+          groups: dev
           file: androidApp/build/outputs/apk/production/release/androidApp-production-release-unsigned.apk
           releaseNotes: |
             Production Release ${{ steps.version.outputs.version }}
