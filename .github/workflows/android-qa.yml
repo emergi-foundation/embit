@@ -57,7 +57,7 @@ jobs:
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS }}
-          groups: qa
+          groups: dev
           file: androidApp/build/outputs/apk/staging/debug/androidApp-staging-debug.apk
           releaseNotes: |
             QA Release ${{ steps.version.outputs.version }}
