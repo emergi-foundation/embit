@@ -19,10 +19,13 @@ import eco.emergi.embit.android.ui.components.BatteryReadingCard
 import eco.emergi.embit.android.ui.components.StatisticsCard
 import eco.emergi.embit.android.ui.components.BatteryLifePredictionCard
 import eco.emergi.embit.android.ui.components.ChargingRecommendationsCard
+import eco.emergi.embit.android.ui.components.GridStatusCard
 import eco.emergi.embit.android.ui.theme.ChargingGreen
 import eco.emergi.embit.android.ui.theme.DischargingRed
 import eco.emergi.embit.domain.models.BatteryState
 import eco.emergi.embit.domain.usecases.*
+import eco.emergi.embit.domain.usecases.grid.GetChargingRecommendationUseCase
+import eco.emergi.embit.domain.usecases.grid.ObserveGridStatusUseCase
 import eco.emergi.embit.presentation.BatteryMonitorUiState
 import eco.emergi.embit.presentation.BatteryMonitorViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +45,8 @@ fun BatteryMonitorScreen() {
     val statisticsUseCase: CalculateBatteryStatisticsUseCase = koinInject()
     val predictLifeUseCase: PredictBatteryLifeUseCase = koinInject()
     val recommendationsUseCase: GenerateChargingRecommendationsUseCase = koinInject()
+    val observeGridStatusUseCase: ObserveGridStatusUseCase = koinInject()
+    val getChargingRecommendationUseCase: GetChargingRecommendationUseCase = koinInject()
 
     // Create ViewModel
     val viewModel = remember(scope) {
@@ -51,6 +56,8 @@ fun BatteryMonitorScreen() {
             calculateStatisticsUseCase = statisticsUseCase,
             predictBatteryLifeUseCase = predictLifeUseCase,
             generateChargingRecommendationsUseCase = recommendationsUseCase,
+            observeGridStatusUseCase = observeGridStatusUseCase,
+            getChargingRecommendationUseCase = getChargingRecommendationUseCase,
             viewModelScope = scope
         )
     }
@@ -60,6 +67,8 @@ fun BatteryMonitorScreen() {
     val todayStats by viewModel.todayStatistics.collectAsState()
     val batteryLifePrediction by viewModel.batteryLifePrediction.collectAsState()
     val chargingRecommendations by viewModel.chargingRecommendations.collectAsState()
+    val gridStatus by viewModel.gridStatus.collectAsState()
+    val gridChargingRecommendation by viewModel.gridChargingRecommendation.collectAsState()
 
     Scaffold(
         topBar = {
@@ -91,6 +100,8 @@ fun BatteryMonitorScreen() {
                         todayStats = todayStats,
                         batteryLifePrediction = batteryLifePrediction,
                         chargingRecommendations = chargingRecommendations,
+                        gridStatus = gridStatus,
+                        gridChargingRecommendation = gridChargingRecommendation,
                         onRefresh = { viewModel.refreshStatistics() }
                     )
                 }
@@ -105,6 +116,8 @@ private fun MonitoringContent(
     todayStats: eco.emergi.embit.domain.models.BatteryStatistics?,
     batteryLifePrediction: BatteryLifePrediction?,
     chargingRecommendations: ChargingRecommendations?,
+    gridStatus: eco.emergi.embit.domain.models.GridStatus?,
+    gridChargingRecommendation: eco.emergi.embit.domain.models.ChargingRecommendation?,
     onRefresh: () -> Unit
 ) {
     Column(
@@ -137,6 +150,12 @@ private fun MonitoringContent(
                 }
             }
         }
+
+        // Grid Status Card - Show grid information and smart charging recommendations
+        GridStatusCard(
+            gridStatus = gridStatus,
+            chargingRecommendation = gridChargingRecommendation
+        )
 
         // Battery Life Prediction Card
         batteryLifePrediction?.let {

@@ -1,0 +1,95 @@
+{
+  "name": "Embit - Battery Monitor & Analytics",
+  "short_name": "Embit",
+  "description": "Monitor your device battery health, analyze usage patterns, and get intelligent charging recommendations",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1B5E20",
+  "theme_color": "#1B5E20",
+  "orientation": "portrait-primary",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/monitor.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "label": "Battery monitoring screen"
+    },
+    {
+      "src": "screenshots/analytics.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "label": "Analytics and insights"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Battery Monitor",
+      "short_name": "Monitor",
+      "description": "View real-time battery status",
+      "url": "/monitor",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "description": "View battery analytics",
+      "url": "/analytics",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

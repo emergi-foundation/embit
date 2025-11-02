@@ -124,6 +124,13 @@ dependencies {
     // DateTime
     implementation(libs.kotlinx.datetime)
 
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.analytics)
+    implementation(libs.play.services.auth)
+
     // Testing
     testImplementation(libs.kotlin.test)
     androidTestImplementation(libs.androidx.test.junit)

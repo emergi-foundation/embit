@@ -6,7 +6,13 @@ import eco.emergi.embit.data.repositories.BatteryRepositoryImpl
 import eco.emergi.embit.domain.repositories.BatteryMonitorServiceFactory
 import eco.emergi.embit.domain.repositories.IBatteryMonitorService
 import eco.emergi.embit.domain.repositories.IBatteryRepository
+import eco.emergi.embit.domain.repositories.IAuthRepository
+import eco.emergi.embit.domain.repositories.IGridDataRepository
+import eco.emergi.embit.domain.repositories.ISyncRepository
 import eco.emergi.embit.domain.usecases.*
+import eco.emergi.embit.domain.usecases.auth.*
+import eco.emergi.embit.domain.usecases.grid.*
+import eco.emergi.embit.domain.usecases.sync.*
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -76,6 +82,82 @@ val sharedModule = module {
     factory {
         GenerateChargingRecommendationsUseCase(
             repository = get()
+        )
+    }
+
+    // Auth Use Cases
+    factory {
+        ObserveAuthStateUseCase(
+            authRepository = get()
+        )
+    }
+
+    factory {
+        SignInUseCase(
+            authRepository = get()
+        )
+    }
+
+    factory {
+        SignUpUseCase(
+            authRepository = get()
+        )
+    }
+
+    factory {
+        SignOutUseCase(
+            authRepository = get()
+        )
+    }
+
+    factory {
+        GetCurrentUserUseCase(
+            authRepository = get()
+        )
+    }
+
+    factory {
+        SendPasswordResetUseCase(
+            authRepository = get()
+        )
+    }
+
+    // Sync Use Cases
+    factory {
+        ObserveSyncStatusUseCase(
+            syncRepository = get()
+        )
+    }
+
+    factory {
+        GetSyncSettingsUseCase(
+            syncRepository = get()
+        )
+    }
+
+    factory {
+        SaveSyncSettingsUseCase(
+            syncRepository = get()
+        )
+    }
+
+    // Grid Use Cases
+    factory {
+        GetChargingRecommendationUseCase(
+            gridDataRepository = get()
+        )
+    }
+
+    factory {
+        ObserveGridStatusUseCase(
+            gridDataRepository = get()
+        )
+    }
+
+    factory {
+        GetCarbonImpactUseCase(
+            gridDataRepository = get(),
+            authRepository = get()
         )
     }
 }

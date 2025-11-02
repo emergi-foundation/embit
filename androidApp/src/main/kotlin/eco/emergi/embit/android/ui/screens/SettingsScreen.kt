@@ -12,18 +12,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import eco.emergi.embit.android.services.BatteryWorkScheduler
+import eco.emergi.embit.android.services.DataSyncScheduler
+import eco.emergi.embit.android.services.GridMonitorScheduler
+import eco.emergi.embit.domain.models.AuthState
+import eco.emergi.embit.domain.models.SyncInterval
+import eco.emergi.embit.domain.models.SyncResult
+import eco.emergi.embit.domain.models.SyncSettings
 import eco.emergi.embit.domain.usecases.ManageBatteryDataUseCase
+import eco.emergi.embit.domain.usecases.auth.*
+import eco.emergi.embit.domain.usecases.sync.*
+import eco.emergi.embit.presentation.AuthViewModel
 import eco.emergi.embit.presentation.SettingsUiState
 import eco.emergi.embit.presentation.SettingsViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import java.text.SimpleDateFormat
+import java.util.*
 
 /**
  * Settings screen for app configuration and data management
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val manageDataUseCase: ManageBatteryDataUseCase = koinInject()
@@ -35,11 +50,58 @@ fun SettingsScreen() {
         )
     }
 
+    // Get auth use cases from Koin
+    val observeAuthStateUseCase: ObserveAuthStateUseCase = koinInject()
+    val signInUseCase: SignInUseCase = koinInject()
+    val signUpUseCase: SignUpUseCase = koinInject()
+    val signOutUseCase: SignOutUseCase = koinInject()
+    val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
+    val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+
+    val authViewModel = remember(scope) {
+        AuthViewModel(
+            observeAuthStateUseCase = observeAuthStateUseCase,
+            signInUseCase = signInUseCase,
+            signUpUseCase = signUpUseCase,
+            signOutUseCase = signOutUseCase,
+            getCurrentUserUseCase = getCurrentUserUseCase,
+            sendPasswordResetUseCase = sendPasswordResetUseCase,
+            viewModelScope = scope
+        )
+    }
+
+    // Get sync use cases from Koin
+    val syncBatteryDataUseCase: SyncBatteryDataUseCase = koinInject()
+    val observeSyncStatusUseCase: ObserveSyncStatusUseCase = koinInject()
+    val getSyncSettingsUseCase: GetSyncSettingsUseCase = koinInject()
+    val saveSyncSettingsUseCase: SaveSyncSettingsUseCase = koinInject()
+
     val uiState by viewModel.uiState.collectAsState()
     val databaseStats by viewModel.databaseStats.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val syncStatus by observeSyncStatusUseCase().collectAsState(initial = eco.emergi.embit.domain.models.SyncStatus())
+
+    var syncSettings by remember { mutableStateOf(SyncSettings()) }
+    var isSyncing by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var isMonitoringEnabled by remember {
         mutableStateOf(BatteryWorkScheduler.isMonitoringScheduled(context))
+    }
+    var gridNotificationsEnabled by remember {
+        mutableStateOf(
+            context.getSharedPreferences("grid_settings", Context.MODE_PRIVATE)
+                .getBoolean("notifications_enabled", true)
+        )
+    }
+
+    // Load sync settings when authenticated
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Authenticated) {
+            getSyncSettingsUseCase().onSuccess { settings ->
+                syncSettings = settings
+            }
+        }
     }
 
     // Handle UI state changes
@@ -110,6 +172,316 @@ fun SettingsScreen() {
                                 }
                                 isMonitoringEnabled = enabled
                             }
+                        )
+                    }
+                }
+            }
+
+            // Account Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Account", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    when (authState) {
+                        is AuthState.Authenticated -> {
+                            // User is authenticated
+                            currentUser?.let { user ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = user.getDisplayNameOrEmail(),
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        if (!user.email.isNullOrBlank() && user.email != user.displayName) {
+                                            Text(
+                                                text = user.email,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    TextButton(onClick = onNavigateToProfile) {
+                                        Text("View Profile")
+                                    }
+                                }
+                            }
+                        }
+                        is AuthState.Unauthenticated -> {
+                            // User is not authenticated
+                            Column {
+                                Text(
+                                    text = "Sign in to sync your data and access advanced features",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = onNavigateToLogin,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Login, contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Sign In")
+                                }
+                            }
+                        }
+                        is AuthState.Loading -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .align(Alignment.CenterHorizontally)
+                            )
+                        }
+                        is AuthState.Error -> {
+                            Text(
+                                text = "Unable to load account information",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Data Sync Section (only show when authenticated)
+            if (authState is AuthState.Authenticated) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Data Sync", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Auto-sync toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Auto Sync")
+                                Text(
+                                    "Automatically sync data to cloud",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = syncSettings.autoSyncEnabled,
+                                onCheckedChange = { enabled ->
+                                    val newSettings = syncSettings.copy(autoSyncEnabled = enabled)
+                                    syncSettings = newSettings
+                                    scope.launch {
+                                        saveSyncSettingsUseCase(newSettings)
+                                    }
+                                    // Schedule or cancel background sync
+                                    if (enabled) {
+                                        DataSyncScheduler.schedulePeriodicSync(context, newSettings.syncInterval)
+                                    } else {
+                                        DataSyncScheduler.cancelPeriodicSync(context)
+                                    }
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // WiFi-only toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("WiFi Only")
+                                Text(
+                                    "Sync only when connected to WiFi",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = syncSettings.syncOnWifiOnly,
+                                onCheckedChange = { enabled ->
+                                    val newSettings = syncSettings.copy(syncOnWifiOnly = enabled)
+                                    syncSettings = newSettings
+                                    scope.launch {
+                                        saveSyncSettingsUseCase(newSettings)
+                                    }
+                                },
+                                enabled = syncSettings.autoSyncEnabled
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Last sync info
+                        if (syncStatus.lastSyncTimestamp != null) {
+                            val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+                            val lastSyncDate = dateFormat.format(Date(syncStatus.lastSyncTimestamp))
+                            Text(
+                                text = "Last synced: $lastSyncDate",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        // Sync status
+                        if (syncStatus.syncInProgress || isSyncing) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Syncing...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        // Error message
+                        syncStatus.lastSyncError?.let { error ->
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        // Manual sync button
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    isSyncing = true
+                                    when (val result = syncBatteryDataUseCase()) {
+                                        is SyncResult.Success -> {
+                                            // Success handled by sync status flow
+                                        }
+                                        is SyncResult.PartialSuccess -> {
+                                            // Partial success
+                                        }
+                                        is SyncResult.Failure -> {
+                                            // Failure handled by sync status flow
+                                        }
+                                    }
+                                    isSyncing = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !syncStatus.syncInProgress && !isSyncing
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Sync Now")
+                        }
+                    }
+                }
+            }
+
+            // Grid Notifications Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Smart Charging Notifications",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Get notified about optimal charging times",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Enable notifications toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Enable Notifications")
+                            Text(
+                                "Get alerts for grid conditions",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = gridNotificationsEnabled,
+                            onCheckedChange = { enabled ->
+                                gridNotificationsEnabled = enabled
+                                // Save preference
+                                context.getSharedPreferences("grid_settings", Context.MODE_PRIVATE)
+                                    .edit()
+                                    .putBoolean("notifications_enabled", enabled)
+                                    .apply()
+
+                                // Schedule or cancel grid monitoring
+                                if (enabled) {
+                                    GridMonitorScheduler.schedulePeriodicMonitoring(context)
+                                } else {
+                                    GridMonitorScheduler.cancelPeriodicMonitoring(context)
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Info text
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "Receive notifications when:\n" +
+                            "• Grid is optimal for charging (low cost, high renewables)\n" +
+                            "• Grid stress is high (avoid charging)\n" +
+                            "• Critical grid conditions (urgent)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
