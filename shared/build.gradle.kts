@@ -71,8 +71,7 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.sqldelight.android.driver)
 
-                // Firebase
-                implementation(platform(libs.firebase.bom))
+                // Firebase (versions managed by androidApp's BOM)
                 implementation(libs.firebase.auth)
                 implementation(libs.firebase.firestore)
                 implementation(libs.play.services.auth)
