@@ -71,9 +71,10 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.sqldelight.android.driver)
 
-                // Firebase (versions managed by androidApp's BOM)
-                implementation(libs.firebase.auth)
-                implementation(libs.firebase.firestore)
+                // Firebase - using explicit versions since KMP doesn't support platform() in sourceSets
+                // Versions match Firebase BOM 33.5.1 used in androidApp
+                implementation("com.google.firebase:firebase-auth:23.1.0")
+                implementation("com.google.firebase:firebase-firestore:25.1.1")
                 implementation(libs.play.services.auth)
 
                 // Coroutines support for Firebase
