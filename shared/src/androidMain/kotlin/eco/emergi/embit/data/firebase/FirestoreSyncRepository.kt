@@ -298,7 +298,6 @@ class FirestoreSyncRepository(
 
     override suspend fun getPendingSyncCount(): Int {
         return try {
-            val stats = batteryRepository.getDatabaseStats().getOrNull()
             // TODO: Query actual unsynced readings count from local database
             // For now, return 0 as placeholder
             0
