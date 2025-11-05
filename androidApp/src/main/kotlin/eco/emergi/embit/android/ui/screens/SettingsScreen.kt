@@ -202,12 +202,14 @@ fun SettingsScreen(
                                             text = user.getDisplayNameOrEmail(),
                                             style = MaterialTheme.typography.bodyLarge
                                         )
-                                        if (!user.email.isNullOrBlank() && user.email != user.displayName) {
-                                            Text(
-                                                text = user.email,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                        user.email?.let { email ->
+                                            if (email.isNotBlank() && email != user.displayName) {
+                                                Text(
+                                                    text = email,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
                                     }
                                     TextButton(onClick = onNavigateToProfile) {
