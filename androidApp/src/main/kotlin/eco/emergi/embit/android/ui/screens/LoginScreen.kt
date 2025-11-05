@@ -46,6 +46,7 @@ fun LoginScreen(
     // Get use cases from Koin
     val observeAuthStateUseCase: ObserveAuthStateUseCase = koinInject()
     val signInUseCase: SignInUseCase = koinInject()
+    val signUpUseCase: SignUpUseCase = koinInject()
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
@@ -55,7 +56,7 @@ fun LoginScreen(
         AuthViewModel(
             observeAuthStateUseCase = observeAuthStateUseCase,
             signInUseCase = signInUseCase,
-            signUpUseCase = koinInject(),
+            signUpUseCase = signUpUseCase,
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,

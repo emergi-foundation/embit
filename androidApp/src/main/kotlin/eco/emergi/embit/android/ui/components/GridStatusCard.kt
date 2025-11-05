@@ -177,7 +177,7 @@ private fun GridDetailsSection(gridStatus: GridStatus) {
         GridDetailRow(
             icon = Icons.Default.MonetizationOn,
             label = "Pricing",
-            value = "${gridStatus.pricing.pricingTier.name} • ${String.format("%.1f", gridStatus.pricing.currentPriceCentsPerKwh)}¢/kWh",
+            value = "${gridStatus.pricing.pricingTier.name} • ${String.format("%.1f", gridStatus.pricing.pricePerKwh)}¢/kWh",
             color = getPricingColor(gridStatus.pricing.pricingTier)
         )
 
@@ -253,8 +253,7 @@ private fun getCarbonLevelColor(level: CarbonLevel): Color {
 private fun getPricingColor(tier: PricingTier): Color {
     return when (tier) {
         PricingTier.OFF_PEAK -> ChargingGreen
-        PricingTier.STANDARD -> MaterialTheme.colorScheme.primary
-        PricingTier.ON_PEAK -> Color(0xFFFF9800) // Orange
-        PricingTier.CRITICAL_PEAK -> MaterialTheme.colorScheme.error
+        PricingTier.MID_PEAK -> MaterialTheme.colorScheme.tertiary
+        PricingTier.ON_PEAK -> MaterialTheme.colorScheme.error
     }
 }

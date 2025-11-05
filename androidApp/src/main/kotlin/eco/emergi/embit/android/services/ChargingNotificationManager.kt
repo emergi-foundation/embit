@@ -85,7 +85,7 @@ class ChargingNotificationManager(private val context: Context) {
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // TODO: Add proper icon
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("🔋 Great Time to Charge!")
             .setContentText(recommendation.reason)
             .setStyle(
@@ -125,7 +125,7 @@ class ChargingNotificationManager(private val context: Context) {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // TODO: Add proper icon
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle("⚠️ Wait to Charge")
             .setContentText(recommendation.reason)
             .setStyle(
@@ -167,7 +167,7 @@ class ChargingNotificationManager(private val context: Context) {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // TODO: Add proper icon
+            .setSmallIcon(android.R.drawable.stat_notify_error)
             .setContentTitle("🚨 Critical Grid Alert")
             .setContentText("Grid stress is ${gridStatus.stressLevel.name}. Please avoid charging now.")
             .setStyle(

@@ -183,12 +183,14 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             // Email
-                            if (!user.email.isNullOrBlank() && user.email != user.displayName) {
-                                Text(
-                                    text = user.email,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            user.email?.let { email ->
+                                if (email.isNotBlank() && email != user.displayName) {
+                                    Text(
+                                        text = email,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(32.dp))
