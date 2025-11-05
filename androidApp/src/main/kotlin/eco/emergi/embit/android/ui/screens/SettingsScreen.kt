@@ -44,7 +44,7 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val manageDataUseCase: ManageBatteryDataUseCase = koinInject()
 
-    val viewModel = remember(scope) {
+    val viewModel = remember {
         SettingsViewModel(
             manageBatteryDataUseCase = manageDataUseCase,
             viewModelScope = scope
@@ -59,7 +59,7 @@ fun SettingsScreen(
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
 
-    val authViewModel = remember(scope) {
+    val authViewModel = remember {
         AuthViewModel(
             observeAuthStateUseCase = observeAuthStateUseCase,
             signInUseCase = signInUseCase,
@@ -328,9 +328,9 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Last sync info
-                        if (syncStatus.lastSyncTimestamp != null) {
+                        syncStatus.lastSyncTimestamp?.let { timestamp ->
                             val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-                            val lastSyncDate = dateFormat.format(Date(syncStatus.lastSyncTimestamp))
+                            val lastSyncDate = dateFormat.format(Date(timestamp))
                             Text(
                                 text = "Last synced: $lastSyncDate",
                                 style = MaterialTheme.typography.bodySmall,
