@@ -19,6 +19,9 @@ hilt-navigation = "1.2.0"
 google-services = "4.4.2"
 firebase-bom = "33.5.1"
 play-services-auth = "21.2.0"
+mockk = "1.13.8"
+turbine = "1.0.0"
+jacoco = "0.8.11"
 
 [libraries]
 # Kotlin
@@ -87,6 +90,11 @@ play-services-auth = { module = "com.google.android.gms:play-services-auth", ver
 androidx-test-junit = "androidx.test.ext:junit:1.2.1"
 androidx-test-espresso = "androidx.test.espresso:espresso-core:3.6.1"
 androidx-compose-ui-test = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "compose" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "compose" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

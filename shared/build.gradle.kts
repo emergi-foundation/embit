@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.sqldelight)
+    jacoco
 }
 
 kotlin {
@@ -60,6 +61,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
 
@@ -90,6 +92,13 @@ kotlin {
             }
         }
 
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(libs.mockk)
+                implementation(libs.turbine)
+            }
+        }
+
         // Future: iosMain, etc.
     }
 }
@@ -116,4 +125,55 @@ sqldelight {
             verifyMigrations.set(true)
         }
     }
+}
+
+// JaCoCo Configuration for Test Coverage
+tasks.withType<Test> {
+    finalizedBy(tasks.named("jacocoTestReport"))
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.withType<Test>())
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude(
+                    "**/R.class",
+                    "**/R\$*.class",
+                    "**/BuildConfig.*",
+                    "**/Manifest*.*",
+                    "**/*\$ViewInjector*.*",
+                    "**/*\$ViewBinder*.*",
+                    "**/databinding/**",
+                    "**/android/databinding/**",
+                    "**/generated/**",
+                    "**/sqldelight/**"
+                )
+            }
+        })
+    )
+
+    executionData.setFrom(files("${project.buildDir}/jacoco/testDebugUnitTest.exec"))
+}
+
+tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(tasks.named("jacocoTestReport"))
+
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.60".toBigDecimal()
+            }
+        }
+    }
+
+    classDirectories.setFrom(tasks.named<JacocoReport>("jacocoTestReport").get().classDirectories)
+    executionData.setFrom(files("${project.buildDir}/jacoco/testDebugUnitTest.exec"))
 }

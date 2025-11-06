@@ -133,9 +133,14 @@ dependencies {
 
     // Testing
     testImplementation(libs.kotlin.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)
     androidTestImplementation(libs.androidx.compose.ui.test)
+    androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.turbine)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 // Allow references to generated code
