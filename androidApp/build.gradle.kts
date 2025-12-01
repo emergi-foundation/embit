@@ -7,6 +7,13 @@ plugins {
     id("kotlin-kapt")
 }
 
+// Load keystore properties
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = java.util.Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "eco.emergi.embit.android"
     compileSdk = 35
@@ -21,6 +28,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            // Use keystore properties if available (local builds)
+            // Otherwise use environment variables (CI/CD)
+            storeFile = if (keystoreProperties.containsKey("storeFile")) {
+                file(keystoreProperties["storeFile"] as String)
+            } else if (System.getenv("KEYSTORE_FILE") != null) {
+                file(System.getenv("KEYSTORE_FILE"))
+            } else {
+                null
+            }
+            storePassword = keystoreProperties.getProperty("storePassword")
+                ?: System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+                ?: System.getenv("KEY_ALIAS")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+                ?: System.getenv("KEY_PASSWORD")
         }
     }
 
@@ -52,10 +79,12 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isMinifyEnabled = false
