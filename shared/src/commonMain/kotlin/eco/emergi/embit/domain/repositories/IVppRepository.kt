@@ -27,7 +27,7 @@ interface IVppRepository {
     /**
      * Get all past events
      */
-    suspend fun getPastEvents(limit: Int = 20): List<Demand ResponseEvent>
+    suspend fun getPastEvents(limit: Int = 20): List<DemandResponseEvent>
 
     /**
      * Get performance history
