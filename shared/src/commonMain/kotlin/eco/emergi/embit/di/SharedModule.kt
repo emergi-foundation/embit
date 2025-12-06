@@ -13,6 +13,7 @@ import eco.emergi.embit.domain.usecases.*
 import eco.emergi.embit.domain.usecases.auth.*
 import eco.emergi.embit.domain.usecases.grid.*
 import eco.emergi.embit.domain.usecases.sync.*
+import eco.emergi.embit.domain.usecases.vpp.*
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -158,6 +159,14 @@ val sharedModule = module {
         GetCarbonImpactUseCase(
             gridDataRepository = get(),
             authRepository = get()
+        )
+    }
+
+    // VPP Use Cases
+    factory {
+        ParticipateInDREventUseCase(
+            vppExecutor = get(),
+            repository = get()
         )
     }
 }

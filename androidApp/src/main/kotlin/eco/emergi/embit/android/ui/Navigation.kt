@@ -75,6 +75,9 @@ fun EmbitApp() {
             composable(Screen.Health.route) {
                 BatteryHealthScreen()
             }
+            composable(Screen.Vpp.route) {
+                VppScreen()
+            }
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onNavigateToLogin = {
@@ -140,6 +143,7 @@ sealed class Screen(val route: String, val label: String = "", val icon: ImageVe
     data object Monitor : Screen("monitor", "Monitor", Icons.Default.BatteryChargingFull)
     data object History : Screen("history", "History", Icons.Default.Analytics)
     data object Health : Screen("health", "Health", Icons.Default.Favorite)
+    data object Vpp : Screen("vpp", "Grid", Icons.Default.ElectricBolt)
     data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 
     // Auth screens (not in bottom nav)
@@ -153,5 +157,6 @@ private val bottomNavItems = listOf(
     Screen.Monitor,
     Screen.History,
     Screen.Health,
+    Screen.Vpp,
     Screen.Settings
 )

@@ -1,15 +1,22 @@
 package eco.emergi.embit.di
 
 import android.content.Context
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import eco.emergi.embit.data.api.GridDataRepository
 import eco.emergi.embit.data.firebase.FirebaseAuthRepository
 import eco.emergi.embit.data.firebase.FirestoreSyncRepository
 import eco.emergi.embit.data.local.DatabaseDriverFactory
+import eco.emergi.embit.data.repositories.VppRepositoryImpl
 import eco.emergi.embit.domain.repositories.BatteryMonitorServiceFactory
 import eco.emergi.embit.domain.repositories.IAuthRepository
 import eco.emergi.embit.domain.repositories.IGridDataRepository
 import eco.emergi.embit.domain.repositories.ISyncRepository
+import eco.emergi.embit.domain.repositories.IVppRepository
 import eco.emergi.embit.domain.usecases.sync.SyncBatteryDataUseCase
+import eco.emergi.embit.domain.vpp.AndroidVppControlExecutor
+import eco.emergi.embit.domain.vpp.VppControlExecutor
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -45,6 +52,24 @@ actual fun platformModule(): Module = module {
     single<IGridDataRepository> {
         GridDataRepository(
             authRepository = get()
+        )
+    }
+
+    // VPP Control Executor (Android power control)
+    single<VppControlExecutor> {
+        AndroidVppControlExecutor(
+            context = get()
+        )
+    }
+
+    // VPP Repository (Firestore)
+    single<IVppRepository> {
+        val userId = Firebase.auth.currentUser?.uid ?: "anonymous"
+        val userLocation = "California" // TODO: Get from user profile/settings
+        VppRepositoryImpl(
+            firestore = Firebase.firestore,
+            userId = userId,
+            userLocation = userLocation
         )
     }
 
