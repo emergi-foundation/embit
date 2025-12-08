@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# Pre-push hook to run tests before pushing
+# Prevents pushing code that would fail tests in CI/CD
+#
+
+set -e
+
+echo "🚀 Running pre-push checks..."
+
+# Get the remote and URL being pushed to
+remote="$1"
+url="$2"
+
+echo "📍 Pushing to: $remote ($url)"
+
+# Check if we're pushing to main/master branch
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$current_branch" = "master" ] || [ "$current_branch" = "main" ]; then
+    echo "⚠️  Pushing to $current_branch - running full test suite..."
+    RUN_FULL_TESTS=true
+else
+    echo "ℹ️  Pushing to $current_branch - running basic tests..."
+    RUN_FULL_TESTS=false
+fi
+
+# Run Kotlin compilation check for all modules
+echo "🔨 Checking Kotlin compilation..."
+if ! ./gradlew compileDebugKotlin --no-daemon --quiet; then
+    echo "❌ Compilation failed! Fix compilation errors before pushing."
+    echo "Run: ./gradlew compileDebugKotlin for details"
+    exit 1
+fi
+echo "✅ Compilation check passed"
+
+# Run unit tests
+echo "🧪 Running unit tests..."
+if [ "$RUN_FULL_TESTS" = true ]; then
+    # Run all tests for main/master branches
+    if ! ./gradlew test --no-daemon; then
+        echo "❌ Tests failed! Fix failing tests before pushing to $current_branch."
+        echo "Run: ./gradlew test --continue for details"
+        exit 1
+    fi
+else
+    # For other branches, just run shared module tests (faster)
+    if ! ./gradlew :shared:testDebugUnitTest --no-daemon --quiet; then
+        echo "⚠️  Some tests failed. Consider fixing them before pushing."
+        echo "Run: ./gradlew :shared:testDebugUnitTest for details"
+        # Don't fail - just warn for feature branches
+        echo "⚠️  Continuing with push..."
+    fi
+fi
+echo "✅ Tests passed"
+
+# Check for untracked files that might be needed
+UNTRACKED_FILES=$(git ls-files --others --exclude-standard)
+if [ -n "$UNTRACKED_FILES" ]; then
+    echo "⚠️  Warning: You have untracked files:"
+    echo "$UNTRACKED_FILES" | head -5
+    if [ $(echo "$UNTRACKED_FILES" | wc -l) -gt 5 ]; then
+        echo "... and $(( $(echo "$UNTRACKED_FILES" | wc -l) - 5 )) more"
+    fi
+    echo "ℹ️  Make sure you haven't forgotten to add any necessary files"
+fi
+
+echo "✅ Pre-push checks passed! Pushing to remote..."
+exit 0

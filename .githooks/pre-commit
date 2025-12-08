@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# Pre-commit hook to validate code before committing
+# Prevents commits that would fail in CI/CD
+#
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check if there are any staged files
+if git diff --cached --quiet; then
+    echo "✅ No staged changes to check"
+    exit 0
+fi
+
+# Check for staged Kotlin files
+STAGED_KOTLIN_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.kt$' || true)
+
+if [ -n "$STAGED_KOTLIN_FILES" ]; then
+    echo "📝 Found staged Kotlin files:"
+    echo "$STAGED_KOTLIN_FILES"
+
+    # Basic syntax check - try to compile just the shared module
+    echo "🔨 Checking Kotlin compilation (shared module)..."
+    if ./gradlew :shared:compileKotlinAndroidDebug --no-daemon --quiet 2>&1 | grep -i "error" > /dev/null; then
+        echo "❌ Compilation errors detected! Fix them before committing."
+        echo "Run: ./gradlew :shared:compileKotlinAndroidDebug for details"
+        exit 1
+    fi
+
+    echo "✅ Kotlin compilation check passed"
+fi
+
+# Check for common issues in code
+echo "🔎 Checking for common code issues..."
+
+# Check for TODO/FIXME without issue numbers (optional - can be strict)
+# Uncomment if you want to enforce this
+# if git diff --cached | grep -E "^\+.*\b(TODO|FIXME)\b" | grep -v "#[0-9]" > /dev/null; then
+#     echo "⚠️  Warning: Found TODO/FIXME without issue reference"
+# fi
+
+# Check for console.log or print statements in production code (excluding tests)
+STAGED_PROD_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.kt$' | grep -v -E '(test|Test)' || true)
+if [ -n "$STAGED_PROD_FILES" ]; then
+    for file in $STAGED_PROD_FILES; do
+        if git diff --cached "$file" | grep -E "^\+.*\bprintln\(" > /dev/null; then
+            echo "⚠️  Warning: Found println() in $file"
+            echo "   Consider using proper logging instead"
+        fi
+    done
+fi
+
+# Check for merge conflict markers
+if git diff --cached | grep -E "^(\+.*<<<<<<<|^.*=======|^.*>>>>>>>)" > /dev/null; then
+    echo "❌ Merge conflict markers detected! Resolve conflicts before committing."
+    exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
+exit 0
