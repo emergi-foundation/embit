@@ -1,6 +1,7 @@
 package eco.emergi.embit.android.ui.screens
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -109,7 +110,7 @@ fun SettingsScreen(
     LaunchedEffect(uiState) {
         when (val state = uiState) {
             is SettingsUiState.ExportSuccess -> {
-                // TODO: Share the exported data
+                shareExportedData(context, state.jsonData)
                 viewModel.resetState()
             }
             is SettingsUiState.ImportSuccess -> {
@@ -616,4 +617,31 @@ fun SettingsScreen(
 @Composable
 private fun remember(scope: CoroutineScope, calculation: () -> SettingsViewModel): SettingsViewModel {
     return androidx.compose.runtime.remember(scope) { calculation() }
+}
+
+/**
+ * Share exported battery data using Android share intent
+ * @param context Android context for starting the intent
+ * @param jsonData JSON string containing the exported data
+ */
+private fun shareExportedData(context: Context, jsonData: String) {
+    try {
+        // Create share intent with plain text
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, jsonData)
+            putExtra(Intent.EXTRA_SUBJECT, "Embit Battery Data Export")
+            putExtra(Intent.EXTRA_TITLE, "Battery Data - ${SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())}")
+        }
+
+        // Create chooser to show all available apps
+        val shareIntent = Intent.createChooser(sendIntent, "Share battery data via")
+
+        // Start the share intent
+        context.startActivity(shareIntent)
+    } catch (e: Exception) {
+        // Handle error silently - user will see no share dialog if this fails
+        android.util.Log.e("SettingsScreen", "Failed to share data", e)
+    }
 }
