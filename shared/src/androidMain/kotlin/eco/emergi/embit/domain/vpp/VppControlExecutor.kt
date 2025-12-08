@@ -85,13 +85,15 @@ class AndroidVppControlExecutor(
 
     override suspend fun getCurrentPowerMeasurement(): PowerMeasurement {
         val voltage = try {
-            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW)
+            // Using integer constant directly for compatibility (BATTERY_PROPERTY_VOLTAGE_NOW = 11)
+            batteryManager.getIntProperty(11)
         } catch (e: Exception) {
             4000000 // Default 4V in microvolts
         }
 
         val current = try {
-            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
+            // Using integer constant directly for compatibility (BATTERY_PROPERTY_CURRENT_NOW = 2)
+            batteryManager.getIntProperty(2)
         } catch (e: Exception) {
             -1000000 // Default -1A in microamps (discharging)
         }
@@ -100,18 +102,17 @@ class AndroidVppControlExecutor(
         val power = (voltage / 1000.0) * (abs(current) / 1000000.0)
 
         val batteryPct = try {
-            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            // Using integer constant directly for compatibility (BATTERY_PROPERTY_CAPACITY = 4)
+            batteryManager.getIntProperty(4)
         } catch (e: Exception) {
             50 // Default
         }
 
         val isCharging = batteryManager.isCharging
 
-        val temperature = try {
-            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_TEMPERATURE) / 10 // Celsius
-        } catch (e: Exception) {
-            null
-        }
+        // Note: Temperature is not available via BatteryManager.getIntProperty()
+        // It requires registering a BroadcastReceiver for ACTION_BATTERY_CHANGED
+        val temperature: Int? = null
 
         return PowerMeasurement(
             timestamp = System.currentTimeMillis(),
