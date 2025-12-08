@@ -64,7 +64,7 @@ class SyncBatteryDataUseCase(
                 val readingIds = readings.map { it.id }
                 batteryRepository.markReadingsAsSynced(
                     readingIds = readingIds,
-                    syncTimestamp = syncResult.lastSyncTime
+                    syncTimestamp = syncResult.timestamp
                 )
             }
 
