@@ -73,6 +73,9 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.sqldelight.android.driver)
 
+                // WorkManager for VPP
+                implementation(libs.androidx.work.runtime)
+
                 // Firebase - using explicit versions since KMP doesn't support platform() in sourceSets
                 // Versions match Firebase BOM 33.5.1 used in androidApp
                 implementation("com.google.firebase:firebase-auth:23.1.0")
