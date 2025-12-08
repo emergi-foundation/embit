@@ -33,7 +33,9 @@ jobs:
 
       - name: Create google-services.json
         run: |
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > androidApp/google-services.json
+          cat <<'EOF' > androidApp/google-services.json
+          ${{ secrets.GOOGLE_SERVICES_JSON }}
+          EOF
 
       - name: Build Dev Debug APK
         run: ./gradlew :androidApp:assembleDevDebug --stacktrace
