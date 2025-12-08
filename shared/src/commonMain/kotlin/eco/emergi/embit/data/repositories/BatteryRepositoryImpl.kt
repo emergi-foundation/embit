@@ -43,7 +43,8 @@ class BatteryRepositoryImpl(
                 temperatureCelsius = reading.temperatureCelsius?.toDouble(),
                 batteryPercentage = reading.batteryPercentage.toLong(),
                 batteryState = serializeBatteryState(reading.batteryState),
-                chargingType = serializeChargingType(reading.batteryState)
+                chargingType = serializeChargingType(reading.batteryState),
+                syncedAt = null  // Not synced when first inserted
             )
 
             val lastInsertId = queries.getLatestReading().executeAsOneOrNull()?.id ?: 0L
@@ -64,7 +65,8 @@ class BatteryRepositoryImpl(
                         temperatureCelsius = reading.temperatureCelsius?.toDouble(),
                         batteryPercentage = reading.batteryPercentage.toLong(),
                         batteryState = serializeBatteryState(reading.batteryState),
-                        chargingType = serializeChargingType(reading.batteryState)
+                        chargingType = serializeChargingType(reading.batteryState),
+                        syncedAt = null  // Not synced when first inserted
                     )
                 }
             }
@@ -325,6 +327,38 @@ class BatteryRepositoryImpl(
             val readings: List<DomainBatteryReading> = this@BatteryRepositoryImpl.json.decodeFromString(json)
             insertReadings(readings)
             Result.success(readings.size)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUnsyncedReadings(limit: Int?): Result<List<DomainBatteryReading>> = withContext(Dispatchers.Default) {
+        try {
+            val readings = queries.getUnsyncedReadings(limit = limit?.toLong() ?: Long.MAX_VALUE)
+                .executeAsList()
+                .map { it.toDomainModel() }
+            Result.success(readings)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUnsyncedReadingsCount(): Result<Long> = withContext(Dispatchers.Default) {
+        try {
+            val count = queries.getUnsyncedReadingsCount().executeAsOne()
+            Result.success(count)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun markReadingsAsSynced(readingIds: List<Long>, syncTimestamp: Long): Result<Unit> = withContext(Dispatchers.Default) {
+        try {
+            queries.markReadingsAsSynced(
+                readingIds = readingIds,
+                syncTimestamp = syncTimestamp
+            )
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS BatteryReading (
     temperatureCelsius REAL,
     batteryPercentage INTEGER NOT NULL,
     batteryState TEXT NOT NULL,
-    chargingType TEXT
+    chargingType TEXT,
+    syncedAt INTEGER
 );
 
 -- Index on timestamp for efficient time-range queries
@@ -15,6 +16,9 @@ CREATE INDEX IF NOT EXISTS idx_battery_reading_timestamp ON BatteryReading(times
 
 -- Index on battery state for filtering
 CREATE INDEX IF NOT EXISTS idx_battery_reading_state ON BatteryReading(batteryState);
+
+-- Index on syncedAt for efficient unsynced queries
+CREATE INDEX IF NOT EXISTS idx_battery_reading_synced ON BatteryReading(syncedAt);
 
 -- Insert a battery reading
 insertReading:
@@ -25,8 +29,9 @@ INSERT INTO BatteryReading (
     temperatureCelsius,
     batteryPercentage,
     batteryState,
-    chargingType
-) VALUES (?, ?, ?, ?, ?, ?, ?);
+    chargingType,
+    syncedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Get the most recent reading
 getLatestReading:
@@ -127,3 +132,21 @@ SELECT
 FROM BatteryReading
 WHERE timestamp BETWEEN :startTime AND :endTime
 GROUP BY batteryState;
+
+-- Get unsynced readings (readings that haven't been synced to Firestore yet)
+getUnsyncedReadings:
+SELECT * FROM BatteryReading
+WHERE syncedAt IS NULL
+ORDER BY timestamp ASC
+LIMIT :limit;
+
+-- Get count of unsynced readings
+getUnsyncedReadingsCount:
+SELECT COUNT(*) FROM BatteryReading
+WHERE syncedAt IS NULL;
+
+-- Mark readings as synced by updating syncedAt timestamp
+markReadingsAsSynced:
+UPDATE BatteryReading
+SET syncedAt = :syncTimestamp
+WHERE id IN :readingIds;

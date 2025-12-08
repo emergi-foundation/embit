@@ -38,21 +38,8 @@ class SyncBatteryDataUseCase(
             // Register/update device info
             registerDevice()
 
-            // TODO: Get recent readings from local database
-            // TODO: Add a method to get only unsynced readings
-            // For now, return success with 0 synced readings as this is incomplete
-            return SyncResult.Success(0, System.currentTimeMillis())
-
-            // Placeholder code below - commented out until getReadingsByTimeRange is implemented
-            /*
-            val endTime = System.currentTimeMillis()
-            val startTime = endTime - (24 * 60 * 60 * 1000) // Last 24 hours
-
-            val readingsResult = batteryRepository.getReadingsByTimeRange(
-                startTime = startTime,
-                endTime = endTime
-            )
-
+            // Get unsynced readings from local database
+            val readingsResult = batteryRepository.getUnsyncedReadings(limit = maxBatchSize)
             val readings = readingsResult.getOrNull() ?: emptyList()
 
             if (readings.isEmpty()) {
@@ -61,19 +48,27 @@ class SyncBatteryDataUseCase(
 
             // Convert to syncable readings
             val deviceId = getDeviceId()
-            val syncableReadings = readings
-                .take(maxBatchSize)
-                .map { reading ->
-                    SyncableBatteryReading.fromBatteryReading(
-                        reading = reading,
-                        userId = currentUser.uid,
-                        deviceId = deviceId
-                    )
-                }
-            */
+            val syncableReadings = readings.map { reading ->
+                SyncableBatteryReading.fromBatteryReading(
+                    reading = reading,
+                    userId = currentUser.uid,
+                    deviceId = deviceId
+                )
+            }
 
-            // Sync to cloud - commented out until above code is implemented
-            // return syncRepository.syncBatteryReadings(syncableReadings)
+            // Sync to cloud
+            val syncResult = syncRepository.syncBatteryReadings(syncableReadings)
+
+            // If sync was successful, mark readings as synced
+            if (syncResult is SyncResult.Success) {
+                val readingIds = readings.map { it.id }
+                batteryRepository.markReadingsAsSynced(
+                    readingIds = readingIds,
+                    syncTimestamp = syncResult.lastSyncTime
+                )
+            }
+
+            return syncResult
         } catch (e: Exception) {
             return SyncResult.Failure("Sync failed: ${e.message}")
         }

@@ -101,4 +101,22 @@ interface IBatteryRepository {
      * Import readings from JSON string
      */
     suspend fun importFromJson(json: String): Result<Int>
+
+    /**
+     * Get readings that haven't been synced to Firestore yet
+     * @param limit Maximum number of readings to return (null for all)
+     */
+    suspend fun getUnsyncedReadings(limit: Int? = null): Result<List<BatteryReading>>
+
+    /**
+     * Get count of readings that haven't been synced to Firestore yet
+     */
+    suspend fun getUnsyncedReadingsCount(): Result<Long>
+
+    /**
+     * Mark readings as synced to Firestore
+     * @param readingIds List of reading IDs to mark as synced
+     * @param syncTimestamp Timestamp when the sync occurred
+     */
+    suspend fun markReadingsAsSynced(readingIds: List<Long>, syncTimestamp: Long): Result<Unit>
 }

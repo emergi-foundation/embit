@@ -298,9 +298,8 @@ class FirestoreSyncRepository(
 
     override suspend fun getPendingSyncCount(): Int {
         return try {
-            // TODO: Query actual unsynced readings count from local database
-            // For now, return 0 as placeholder
-            0
+            val result = batteryRepository.getUnsyncedReadingsCount()
+            result.getOrNull()?.toInt() ?: 0
         } catch (e: Exception) {
             0
         }
@@ -308,9 +307,7 @@ class FirestoreSyncRepository(
 
     override suspend fun markReadingsAsSynced(readingIds: List<Long>, syncTimestamp: Long): Result<Unit> {
         return try {
-            // TODO: Update local database to mark readings as synced
-            // This will need to be implemented in BatteryRepository
-            Result.success(Unit)
+            batteryRepository.markReadingsAsSynced(readingIds, syncTimestamp)
         } catch (e: Exception) {
             Result.failure(Exception("Failed to mark readings as synced: ${e.message}"))
         }
