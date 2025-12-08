@@ -58,7 +58,8 @@ actual fun platformModule(): Module = module {
     // VPP Control Executor (Android power control)
     single<VppControlExecutor> {
         AndroidVppControlExecutor(
-            context = get()
+            context = get(),
+            authRepository = get()
         )
     }
 

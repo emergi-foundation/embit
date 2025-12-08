@@ -6,6 +6,7 @@ import android.os.BatteryManager
 import android.os.PowerManager
 import androidx.work.WorkManager
 import eco.emergi.embit.domain.models.*
+import eco.emergi.embit.domain.repositories.IAuthRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -16,7 +17,8 @@ import kotlin.math.abs
  * Controls device power consumption during demand response events
  */
 class AndroidVppControlExecutor(
-    private val context: Context
+    private val context: Context,
+    private val authRepository: IAuthRepository
 ) : VppControlExecutor {
 
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -55,9 +57,11 @@ class AndroidVppControlExecutor(
         val actualPower = getCurrentPowerMeasurement().powerWatts
         val reduction = baselinePower - actualPower
 
+        val currentUser = authRepository.getCurrentUser()
+
         return EventPerformance(
             eventId = event.eventId,
-            userId = "current_user", // TODO: Get from auth
+            userId = currentUser?.uid ?: "anonymous",
             deviceId = getDeviceId(),
             startTime = System.currentTimeMillis(),
             endTime = event.endTime,
@@ -202,10 +206,11 @@ class AndroidVppControlExecutor(
         }
     }
 
-    private fun createEmptyPerformance(event: DemandResponseEvent): EventPerformance {
+    private suspend fun createEmptyPerformance(event: DemandResponseEvent): EventPerformance {
+        val currentUser = authRepository.getCurrentUser()
         return EventPerformance(
             eventId = event.eventId,
-            userId = "current_user",
+            userId = currentUser?.uid ?: "anonymous",
             deviceId = getDeviceId(),
             startTime = System.currentTimeMillis(),
             endTime = System.currentTimeMillis(),
