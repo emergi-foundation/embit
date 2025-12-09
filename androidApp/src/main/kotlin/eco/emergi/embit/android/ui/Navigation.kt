@@ -6,8 +6,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -19,7 +22,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import eco.emergi.embit.android.ui.components.SolarPoweredIndicator
 import eco.emergi.embit.android.ui.screens.*
+import eco.emergi.embit.domain.models.GridStatus
 import eco.emergi.embit.domain.usecases.grid.ObserveGridStatusUseCase
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 
 /**
@@ -34,7 +39,13 @@ fun EmbitApp() {
 
     // Observe grid status globally for solar indicator
     val observeGridStatusUseCase: ObserveGridStatusUseCase = koinInject()
-    val gridStatus by observeGridStatusUseCase().collectAsState(initial = null)
+    var gridStatus by remember { mutableStateOf<GridStatus?>(null) }
+
+    LaunchedEffect(Unit) {
+        observeGridStatusUseCase().collectLatest { status ->
+            gridStatus = status
+        }
+    }
 
     // Determine if we should show bottom bar (hide on auth screens)
     val showBottomBar = currentRoute !in listOf(
