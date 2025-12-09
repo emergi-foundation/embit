@@ -1,10 +1,12 @@
 package eco.emergi.embit.android.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -15,7 +17,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import eco.emergi.embit.android.ui.components.SolarPoweredIndicator
 import eco.emergi.embit.android.ui.screens.*
+import eco.emergi.embit.domain.usecases.grid.ObserveGridStatusUseCase
+import org.koin.compose.koinInject
 
 /**
  * Main app composable with navigation
@@ -26,6 +31,10 @@ fun EmbitApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // Observe grid status globally for solar indicator
+    val observeGridStatusUseCase: ObserveGridStatusUseCase = koinInject()
+    val gridStatus by observeGridStatusUseCase().collectAsState(initial = null)
 
     // Determine if we should show bottom bar (hide on auth screens)
     val showBottomBar = currentRoute !in listOf(
@@ -61,11 +70,17 @@ fun EmbitApp() {
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Monitor.route,
+        Column(
             modifier = Modifier.padding(innerPadding)
         ) {
+            // Solar-powered indicator at the top (visible at all times)
+            SolarPoweredIndicator(gridStatus = gridStatus)
+
+            // Main navigation content
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Monitor.route
+            ) {
             composable(Screen.Monitor.route) {
                 BatteryMonitorScreen()
             }
@@ -131,6 +146,7 @@ fun EmbitApp() {
                     }
                 )
             }
+        }
         }
     }
 }
