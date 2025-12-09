@@ -1,8 +1,10 @@
 package eco.emergi.embit.data.api
 
 import com.google.firebase.firestore.FirebaseFirestore
+import eco.emergi.embit.domain.api.providers.WattTimeProvider
 import eco.emergi.embit.domain.models.*
 import eco.emergi.embit.domain.repositories.IAuthRepository
+import eco.emergi.embit.domain.repositories.IGridDataProvider
 import eco.emergi.embit.domain.repositories.IGridDataRepository
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -12,35 +14,45 @@ import kotlinx.coroutines.tasks.await
 /**
  * Implementation of grid data repository using backend API.
  *
- * This implementation connects to the Emergi backend for grid data.
- * For now, it includes mock data generation that can be replaced with
- * actual API calls when the backend is ready.
+ * This implementation uses pluggable grid data providers (WattTime, ElectricityMap, etc.)
+ * and supports energy product selection for users who want guaranteed renewable energy.
  */
 class GridDataRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
-    private val authRepository: IAuthRepository
+    private val authRepository: IAuthRepository,
+    private val gridDataProvider: IGridDataProvider = WattTimeProvider(useMockData = true)
 ) : IGridDataRepository {
 
-    private var userLocation: String = "California" // Default location
+    private var userLocation: String = "CAISO_NORTH" // Default to California ISO
+    private var userEnergyProduct: EnergyProduct = EnergyProducts.STANDARD_GRID
 
     override suspend fun getCurrentGridStatus(location: String): Result<GridStatus> {
         return try {
-            // TODO: Replace with actual backend API call
-            // For now, return mock data
-            val gridStatus = generateMockGridStatus(location)
-            Result.success(gridStatus)
+            // Fetch grid status from provider (WattTime, ElectricityMap, etc.)
+            val result = gridDataProvider.fetchGridStatus(location)
+
+            result.map { gridStatus ->
+                // Apply energy product override if user has selected a specific plan
+                applyEnergyProductOverride(gridStatus)
+            }
         } catch (e: Exception) {
             Result.failure(Exception("Failed to fetch grid status: ${e.message}"))
         }
     }
 
     override fun observeGridStatus(location: String): Flow<GridStatus> = callbackFlow {
-        // TODO: Replace with actual backend WebSocket or polling
-        // For now, emit mock data periodically
+        // Poll grid data provider periodically (every minute)
+        // In the future, this could use WebSocket for real-time updates
         try {
             while (true) {
-                val status = generateMockGridStatus(location)
-                trySend(status)
+                val result = gridDataProvider.fetchGridStatus(location)
+                result.onSuccess { gridStatus ->
+                    val overriddenStatus = applyEnergyProductOverride(gridStatus)
+                    trySend(overriddenStatus)
+                }.onFailure { error ->
+                    close(error)
+                    return@callbackFlow
+                }
                 kotlinx.coroutines.delay(60000) // Update every minute
             }
         } catch (e: Exception) {
@@ -186,60 +198,59 @@ class GridDataRepository(
     }
 
     /**
-     * Generate mock grid status for development
-     * TODO: Replace with actual backend API call
+     * Get user's selected energy product/plan
      */
-    private fun generateMockGridStatus(location: String): GridStatus {
-        val hour = java.time.LocalTime.now().hour
+    suspend fun getUserEnergyProduct(): EnergyProduct {
+        // TODO: Load from Firestore user preferences
+        return userEnergyProduct
+    }
 
-        // Simulate peak hours (4-9 PM)
-        val isPeakHour = hour in 16..21
-        val stressLevel = when {
-            isPeakHour -> GridStressLevel.HIGH
-            hour in 10..15 -> GridStressLevel.MODERATE
-            else -> GridStressLevel.LOW
+    /**
+     * Set user's energy product/plan
+     */
+    suspend fun setUserEnergyProduct(product: EnergyProduct): Result<Unit> {
+        return try {
+            userEnergyProduct = product
+            // TODO: Save to Firestore user preferences
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Apply energy product override to grid status.
+     *
+     * If user has selected a guaranteed clean energy product (e.g., 100% Solar),
+     * override the grid's actual renewable percentage with the product's guarantee.
+     */
+    private fun applyEnergyProductOverride(gridStatus: GridStatus): GridStatus {
+        // If user has standard grid, return actual grid status
+        if (userEnergyProduct.type == EnergyProductType.STANDARD_GRID) {
+            return gridStatus
         }
 
-        // Simulate higher renewable energy during daytime
-        val renewablePercentage = when {
-            hour in 10..16 -> 65.0 + (Math.random() * 15)
-            hour in 6..9 || hour in 17..20 -> 40.0 + (Math.random() * 20)
-            else -> 25.0 + (Math.random() * 15)
-        }
-
-        val carbonIntensity = CarbonIntensity(
-            gramsPerKwh = 450.0 - (renewablePercentage * 3.5),
-            level = when (renewablePercentage) {
-                in 70.0..100.0 -> CarbonLevel.VERY_LOW
-                in 50.0..70.0 -> CarbonLevel.LOW
-                in 30.0..50.0 -> CarbonLevel.MODERATE
-                in 15.0..30.0 -> CarbonLevel.HIGH
-                else -> CarbonLevel.VERY_HIGH
-            },
-            renewablePercentage = renewablePercentage
-        )
-
-        val pricingTier = if (isPeakHour) PricingTier.ON_PEAK
-        else if (hour in 10..15) PricingTier.MID_PEAK
-        else PricingTier.OFF_PEAK
-
-        return GridStatus(
-            timestamp = System.currentTimeMillis(),
-            stressLevel = stressLevel,
-            carbonIntensity = carbonIntensity,
-            pricing = GridPricing(
-                pricePerKwh = when (pricingTier) {
-                    PricingTier.OFF_PEAK -> 8.5
-                    PricingTier.MID_PEAK -> 15.2
-                    PricingTier.ON_PEAK -> 28.7
+        // If user has a guaranteed clean energy product, override renewable percentage
+        val fixedPercentage = userEnergyProduct.fixedRenewablePercentage
+        if (fixedPercentage != null) {
+            val overriddenCarbonIntensity = CarbonIntensity(
+                gramsPerKwh = 450.0 - (fixedPercentage * 3.5), // Lower carbon intensity
+                level = when (fixedPercentage) {
+                    in 70.0..100.0 -> CarbonLevel.VERY_LOW
+                    in 50.0..70.0 -> CarbonLevel.LOW
+                    in 30.0..50.0 -> CarbonLevel.MODERATE
+                    in 15.0..30.0 -> CarbonLevel.HIGH
+                    else -> CarbonLevel.VERY_HIGH
                 },
-                currency = "USD",
-                pricingTier = pricingTier,
-                peakHours = listOf(16, 17, 18, 19, 20, 21)
-            ),
-            location = location,
-            gridOperator = "Mock Grid Operator"
-        )
+                renewablePercentage = fixedPercentage
+            )
+
+            return gridStatus.copy(
+                carbonIntensity = overriddenCarbonIntensity
+            )
+        }
+
+        return gridStatus
     }
 
     /**
