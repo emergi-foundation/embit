@@ -162,6 +162,18 @@ val sharedModule = module {
         )
     }
 
+    factory {
+        GetEnergyProductUseCase(
+            gridDataRepository = get()
+        )
+    }
+
+    factory {
+        SetEnergyProductUseCase(
+            gridDataRepository = get()
+        )
+    }
+
     // VPP Use Cases
     factory {
         ParticipateInDREventUseCase(

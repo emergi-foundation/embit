@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,11 +18,15 @@ import eco.emergi.embit.android.services.BatteryWorkScheduler
 import eco.emergi.embit.android.services.DataSyncScheduler
 import eco.emergi.embit.android.services.GridMonitorScheduler
 import eco.emergi.embit.domain.models.AuthState
+import eco.emergi.embit.domain.models.EnergyProduct
+import eco.emergi.embit.domain.models.EnergyProducts
 import eco.emergi.embit.domain.models.SyncInterval
 import eco.emergi.embit.domain.models.SyncResult
 import eco.emergi.embit.domain.models.SyncSettings
 import eco.emergi.embit.domain.usecases.ManageBatteryDataUseCase
 import eco.emergi.embit.domain.usecases.auth.*
+import eco.emergi.embit.domain.usecases.grid.GetEnergyProductUseCase
+import eco.emergi.embit.domain.usecases.grid.SetEnergyProductUseCase
 import eco.emergi.embit.domain.usecases.sync.*
 import eco.emergi.embit.presentation.AuthViewModel
 import eco.emergi.embit.presentation.SettingsUiState
@@ -78,6 +83,10 @@ fun SettingsScreen(
     val getSyncSettingsUseCase: GetSyncSettingsUseCase = koinInject()
     val saveSyncSettingsUseCase: SaveSyncSettingsUseCase = koinInject()
 
+    // Get energy product use cases from Koin
+    val getEnergyProductUseCase: GetEnergyProductUseCase = koinInject()
+    val setEnergyProductUseCase: SetEnergyProductUseCase = koinInject()
+
     val uiState by viewModel.uiState.collectAsState()
     val databaseStats by viewModel.databaseStats.collectAsState()
     val authState by authViewModel.authState.collectAsState()
@@ -87,6 +96,8 @@ fun SettingsScreen(
     var syncSettings by remember { mutableStateOf(SyncSettings()) }
     var isSyncing by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var selectedEnergyProduct by remember { mutableStateOf(EnergyProducts.STANDARD_GRID) }
+    var showEnergyProductSelector by remember { mutableStateOf(false) }
     var isMonitoringEnabled by remember {
         mutableStateOf(BatteryWorkScheduler.isMonitoringScheduled(context))
     }
@@ -104,6 +115,11 @@ fun SettingsScreen(
                 syncSettings = settings
             }
         }
+    }
+
+    // Load energy product selection
+    LaunchedEffect(Unit) {
+        selectedEnergyProduct = getEnergyProductUseCase()
     }
 
     // Handle UI state changes
@@ -402,6 +418,65 @@ fun SettingsScreen(
                 }
             }
 
+            // Energy Product Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Energy Product", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "Choose your energy source to see how clean your phone is powered",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Current selection
+                    OutlinedButton(
+                        onClick = { showEnergyProductSelector = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = selectedEnergyProduct.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Icon(Icons.Default.ChevronRight, contentDescription = null)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = selectedEnergyProduct.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            selectedEnergyProduct.fixedRenewablePercentage?.let { percentage ->
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${percentage.toInt()}% Renewable",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Grid Notifications Section
             Card(
                 modifier = Modifier
@@ -569,6 +644,77 @@ fun SettingsScreen(
                     Text("Built with Kotlin Multiplatform & Compose")
                 }
             }
+        }
+
+        // Energy Product Selector Dialog
+        if (showEnergyProductSelector) {
+            AlertDialog(
+                onDismissRequest = { showEnergyProductSelector = false },
+                title = { Text("Select Energy Product") },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        EnergyProducts.ALL_PRODUCTS.forEach { product ->
+                            val isSelected = product.type == selectedEnergyProduct.type
+                            OutlinedButton(
+                                onClick = {
+                                    selectedEnergyProduct = product
+                                    scope.launch {
+                                        setEnergyProductUseCase(product)
+                                    }
+                                    showEnergyProductSelector = false
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = if (isSelected) {
+                                    ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                } else {
+                                    ButtonDefaults.outlinedButtonColors()
+                                }
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    horizontalAlignment = Alignment.Start
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = product.displayName,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        product.fixedRenewablePercentage?.let { percentage ->
+                                            Text(
+                                                text = "${percentage.toInt()}%",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = product.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showEnergyProductSelector = false }) {
+                        Text("Close")
+                    }
+                }
+            )
         }
 
         // Clear All Data Confirmation Dialog
