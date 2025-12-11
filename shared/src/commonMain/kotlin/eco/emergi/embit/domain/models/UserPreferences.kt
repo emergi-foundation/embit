@@ -24,15 +24,6 @@ data class UserPreferences(
     val theme: String = "system",
     val updatedAt: Long = System.currentTimeMillis()
 ) {
-    companion object {
-        /**
-         * Create default preferences for a new user
-         */
-        fun default(userId: String): UserPreferences {
-            return UserPreferences(userId = userId)
-        }
-    }
-
     /**
      * Convert to Firestore map for storage
      */
@@ -49,6 +40,13 @@ data class UserPreferences(
     }
 
     companion object {
+        /**
+         * Create default preferences for a new user
+         */
+        fun default(userId: String): UserPreferences {
+            return UserPreferences(userId = userId)
+        }
+
         /**
          * Create from Firestore document data
          */
