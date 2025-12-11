@@ -164,13 +164,13 @@ val sharedModule = module {
 
     factory {
         GetEnergyProductUseCase(
-            gridDataRepository = get()
+            userPreferencesRepository = get()
         )
     }
 
     factory {
         SetEnergyProductUseCase(
-            gridDataRepository = get()
+            userPreferencesRepository = get()
         )
     }
 

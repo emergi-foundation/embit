@@ -136,4 +136,18 @@ object EnergyProducts {
         SOLAR_75_WIND_25,
         RENEWABLE_100
     )
+
+    /**
+     * Get energy product by type name (for Firestore deserialization)
+     */
+    fun fromTypeName(typeName: String): EnergyProduct {
+        return ALL_PRODUCTS.find { it.type.name == typeName } ?: STANDARD_GRID
+    }
+
+    /**
+     * Get energy product by type enum
+     */
+    fun fromType(type: EnergyProductType): EnergyProduct {
+        return ALL_PRODUCTS.find { it.type == type } ?: STANDARD_GRID
+    }
 }

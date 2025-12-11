@@ -6,6 +6,7 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import eco.emergi.embit.data.api.GridDataRepository
 import eco.emergi.embit.data.firebase.FirebaseAuthRepository
+import eco.emergi.embit.data.firebase.FirebaseUserPreferencesRepository
 import eco.emergi.embit.data.firebase.FirestoreSyncRepository
 import eco.emergi.embit.data.local.DatabaseDriverFactory
 import eco.emergi.embit.data.repositories.VppRepositoryImpl
@@ -13,6 +14,7 @@ import eco.emergi.embit.domain.repositories.BatteryMonitorServiceFactory
 import eco.emergi.embit.domain.repositories.IAuthRepository
 import eco.emergi.embit.domain.repositories.IGridDataRepository
 import eco.emergi.embit.domain.repositories.ISyncRepository
+import eco.emergi.embit.domain.repositories.IUserPreferencesRepository
 import eco.emergi.embit.domain.repositories.IVppRepository
 import eco.emergi.embit.domain.usecases.sync.SyncBatteryDataUseCase
 import eco.emergi.embit.domain.vpp.AndroidVppControlExecutor
@@ -41,6 +43,13 @@ actual fun platformModule(): Module = module {
         FirebaseAuthRepository()
     }
 
+    // User Preferences Repository (Firestore)
+    single<IUserPreferencesRepository> {
+        FirebaseUserPreferencesRepository(
+            authRepository = get()
+        )
+    }
+
     // Sync Repository (Firestore)
     single<ISyncRepository> {
         FirestoreSyncRepository(
@@ -51,7 +60,8 @@ actual fun platformModule(): Module = module {
     // Grid Data Repository (Backend API)
     single<IGridDataRepository> {
         GridDataRepository(
-            authRepository = get()
+            authRepository = get(),
+            userPreferencesRepository = get()
         )
     }
 

@@ -20,11 +20,9 @@ import kotlinx.coroutines.tasks.await
 class GridDataRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
     private val authRepository: IAuthRepository,
+    private val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository,
     private val gridDataProvider: IGridDataProvider = WattTimeProvider(useMockData = true)
 ) : IGridDataRepository {
-
-    private var userLocation: String = "CAISO_NORTH" // Default to California ISO
-    private var userEnergyProduct: EnergyProduct = EnergyProducts.STANDARD_GRID
 
     override suspend fun getCurrentGridStatus(location: String): Result<GridStatus> {
         return try {
@@ -33,7 +31,8 @@ class GridDataRepository(
 
             result.map { gridStatus ->
                 // Apply energy product override if user has selected a specific plan
-                applyEnergyProductOverride(gridStatus)
+                val userEnergyProduct = getUserEnergyProduct()
+                applyEnergyProductOverride(gridStatus, userEnergyProduct)
             }
         } catch (e: Exception) {
             Result.failure(Exception("Failed to fetch grid status: ${e.message}"))
@@ -47,7 +46,8 @@ class GridDataRepository(
             while (true) {
                 val result = gridDataProvider.fetchGridStatus(location)
                 result.onSuccess { gridStatus ->
-                    val overriddenStatus = applyEnergyProductOverride(gridStatus)
+                    val userEnergyProduct = getUserEnergyProduct()
+                    val overriddenStatus = applyEnergyProductOverride(gridStatus, userEnergyProduct)
                     trySend(overriddenStatus)
                 }.onFailure { error ->
                     close(error)
@@ -184,38 +184,29 @@ class GridDataRepository(
     }
 
     override suspend fun getUserLocation(): String {
-        return userLocation
+        val preferences = userPreferencesRepository.getUserPreferences().getOrNull()
+        return preferences?.location ?: "CAISO_NORTH" // Default to California ISO
     }
 
     override suspend fun setUserLocation(location: String): Result<Unit> {
-        return try {
-            userLocation = location
-            // TODO: Save to user preferences in Firestore
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return userPreferencesRepository.updateLocation(location)
     }
 
     /**
      * Get user's selected energy product/plan
      */
     suspend fun getUserEnergyProduct(): EnergyProduct {
-        // TODO: Load from Firestore user preferences
-        return userEnergyProduct
+        val preferences = userPreferencesRepository.getUserPreferences().getOrNull()
+        return EnergyProducts.fromType(
+            preferences?.energyProductType ?: EnergyProductType.STANDARD_GRID
+        )
     }
 
     /**
      * Set user's energy product/plan
      */
     suspend fun setUserEnergyProduct(product: EnergyProduct): Result<Unit> {
-        return try {
-            userEnergyProduct = product
-            // TODO: Save to Firestore user preferences
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return userPreferencesRepository.updateEnergyProduct(product)
     }
 
     /**
@@ -224,7 +215,7 @@ class GridDataRepository(
      * If user has selected a guaranteed clean energy product (e.g., 100% Solar),
      * override the grid's actual renewable percentage with the product's guarantee.
      */
-    private fun applyEnergyProductOverride(gridStatus: GridStatus): GridStatus {
+    private fun applyEnergyProductOverride(gridStatus: GridStatus, userEnergyProduct: EnergyProduct): GridStatus {
         // If user has standard grid, return actual grid status
         if (userEnergyProduct.type == EnergyProductType.STANDARD_GRID) {
             return gridStatus

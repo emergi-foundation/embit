@@ -1,0 +1,71 @@
+package eco.emergi.embit.domain.models
+
+import kotlinx.serialization.Serializable
+
+/**
+ * User-specific preferences and settings stored in Firestore.
+ * These preferences are tied to a user's account and persist across devices.
+ *
+ * @property userId Firebase Auth user ID
+ * @property location Grid location/region (e.g., "CAISO_NORTH", "PJM", "ERCOT")
+ * @property energyProductType Type of energy product selected by user
+ * @property notificationsEnabled Whether to show charging recommendations
+ * @property optimalChargingEnabled Whether to enable smart charging features
+ * @property theme App theme preference ("light", "dark", "system")
+ * @property updatedAt Timestamp of last update (milliseconds since epoch)
+ */
+@Serializable
+data class UserPreferences(
+    val userId: String,
+    val location: String = "CAISO_NORTH",  // Default to California ISO
+    val energyProductType: EnergyProductType = EnergyProductType.STANDARD_GRID,
+    val notificationsEnabled: Boolean = true,
+    val optimalChargingEnabled: Boolean = true,
+    val theme: String = "system",
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    companion object {
+        /**
+         * Create default preferences for a new user
+         */
+        fun default(userId: String): UserPreferences {
+            return UserPreferences(userId = userId)
+        }
+    }
+
+    /**
+     * Convert to Firestore map for storage
+     */
+    fun toFirestoreMap(): Map<String, Any> {
+        return mapOf(
+            "userId" to userId,
+            "location" to location,
+            "energyProductType" to energyProductType.name,
+            "notificationsEnabled" to notificationsEnabled,
+            "optimalChargingEnabled" to optimalChargingEnabled,
+            "theme" to theme,
+            "updatedAt" to updatedAt
+        )
+    }
+
+    companion object {
+        /**
+         * Create from Firestore document data
+         */
+        fun fromFirestoreMap(data: Map<String, Any>): UserPreferences {
+            return UserPreferences(
+                userId = data["userId"] as? String ?: "",
+                location = data["location"] as? String ?: "CAISO_NORTH",
+                energyProductType = try {
+                    EnergyProductType.valueOf(data["energyProductType"] as? String ?: "STANDARD_GRID")
+                } catch (e: IllegalArgumentException) {
+                    EnergyProductType.STANDARD_GRID
+                },
+                notificationsEnabled = data["notificationsEnabled"] as? Boolean ?: true,
+                optimalChargingEnabled = data["optimalChargingEnabled"] as? Boolean ?: true,
+                theme = data["theme"] as? String ?: "system",
+                updatedAt = (data["updatedAt"] as? Long) ?: System.currentTimeMillis()
+            )
+        }
+    }
+}
