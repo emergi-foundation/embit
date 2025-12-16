@@ -2,9 +2,11 @@ package eco.emergi.embit.domain.usecases.sync
 
 import eco.emergi.embit.domain.models.BatteryReading
 import eco.emergi.embit.domain.models.BatteryState
+import eco.emergi.embit.domain.models.ChargingType
 import eco.emergi.embit.domain.models.SyncableBatteryReading
 import eco.emergi.embit.domain.repositories.IBatteryRepository
 import eco.emergi.embit.domain.repositories.ISyncRepository
+import kotlinx.datetime.Instant
 
 /**
  * Use case for importing battery data from Firestore to local database.
@@ -54,14 +56,14 @@ class ImportBatteryDataUseCase(
             }
 
             // Get existing local readings in the same time range
-            val localReadingsResult = batteryRepository.getBatteryReadingsByTimeRange(
-                startTime = startTimestamp,
-                endTime = endTimestamp
+            val localReadingsResult = batteryRepository.getReadingsInRange(
+                startTime = Instant.fromEpochMilliseconds(startTimestamp),
+                endTime = Instant.fromEpochMilliseconds(endTimestamp)
             )
             val localReadings = localReadingsResult.getOrNull() ?: emptyList()
 
-            // Create a map of local readings by timestamp for quick lookup
-            val localReadingsByTimestamp = localReadings.associateBy { it.timestamp }
+            // Create a map of local readings by timestamp (using epoch millis for comparison)
+            val localReadingsByTimestamp = localReadings.associateBy { it.timestamp.toEpochMilliseconds() }
 
             var imported = 0
             var skipped = 0
@@ -82,9 +84,10 @@ class ImportBatteryDataUseCase(
 
                     val shouldImport = when (conflictStrategy) {
                         ConflictStrategy.KEEP_NEWER -> {
-                            // Compare sync timestamps if available
+                            // Compare sync timestamps if available (remote has syncedAt)
                             val remoteSyncTime = remoteReading.syncedAt ?: 0
-                            val localSyncTime = localReading.syncedAt ?: 0
+                            // Local readings don't have syncedAt, so default to their timestamp
+                            val localSyncTime = localReading.timestamp.toEpochMilliseconds()
                             remoteSyncTime > localSyncTime
                         }
                         ConflictStrategy.KEEP_LOCAL -> false
@@ -150,12 +153,24 @@ class ImportBatteryDataUseCase(
 private fun SyncableBatteryReading.toBatteryReading(): BatteryReading {
     return BatteryReading(
         id = this.id,
-        timestamp = this.timestamp,
+        timestamp = Instant.fromEpochMilliseconds(this.timestamp),
         voltageMillivolts = this.voltageMillivolts,
         amperageMicroamps = this.amperageMicroamps,
         temperatureCelsius = this.temperatureCelsius,
         batteryPercentage = this.batteryPercentage,
-        batteryState = BatteryState.fromType(this.batteryStateType),
-        syncedAt = this.syncedAt
+        batteryState = parseBatteryState(this.batteryStateType)
     )
+}
+
+/**
+ * Parse battery state from string type
+ */
+private fun parseBatteryState(stateType: String): BatteryState {
+    return when (stateType.lowercase()) {
+        "charging" -> BatteryState.Charging(ChargingType.UNKNOWN)
+        "discharging" -> BatteryState.Discharging
+        "full" -> BatteryState.Full
+        "not_charging", "notcharging" -> BatteryState.NotCharging
+        else -> BatteryState.Unknown
+    }
 }
