@@ -16,6 +16,7 @@ import eco.emergi.embit.domain.repositories.IGridDataRepository
 import eco.emergi.embit.domain.repositories.ISyncRepository
 import eco.emergi.embit.domain.repositories.IUserPreferencesRepository
 import eco.emergi.embit.domain.repositories.IVppRepository
+import eco.emergi.embit.domain.usecases.sync.BidirectionalSyncUseCase
 import eco.emergi.embit.domain.usecases.sync.SyncBatteryDataUseCase
 import eco.emergi.embit.domain.vpp.AndroidVppControlExecutor
 import eco.emergi.embit.domain.vpp.VppControlExecutor
@@ -84,13 +85,22 @@ actual fun platformModule(): Module = module {
         )
     }
 
-    // Android-specific sync use case
+    // Android-specific sync use cases
     factory {
         SyncBatteryDataUseCase(
             syncRepository = get(),
             batteryRepository = get(),
             authRepository = get(),
             context = get()
+        )
+    }
+
+    factory {
+        BidirectionalSyncUseCase(
+            syncRepository = get(),
+            batteryRepository = get(),
+            uploadUseCase = get(),
+            importUseCase = get()
         )
     }
 }

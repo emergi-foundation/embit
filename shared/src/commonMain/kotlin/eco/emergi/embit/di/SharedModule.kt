@@ -142,6 +142,13 @@ val sharedModule = module {
         )
     }
 
+    factory {
+        ImportBatteryDataUseCase(
+            syncRepository = get(),
+            batteryRepository = get()
+        )
+    }
+
     // Grid Use Cases
     factory {
         GetChargingRecommendationUseCase(
