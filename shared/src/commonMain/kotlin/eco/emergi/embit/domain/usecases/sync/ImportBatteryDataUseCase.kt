@@ -57,8 +57,8 @@ class ImportBatteryDataUseCase(
 
             // Get existing local readings in the same time range
             val localReadingsResult = batteryRepository.getReadingsInRange(
-                startTime = Instant.fromEpochMilliseconds(startTimestamp),
-                endTime = Instant.fromEpochMilliseconds(endTimestamp)
+                start = Instant.fromEpochMilliseconds(startTimestamp),
+                end = Instant.fromEpochMilliseconds(endTimestamp)
             )
             val localReadings = localReadingsResult.getOrNull() ?: emptyList()
 
