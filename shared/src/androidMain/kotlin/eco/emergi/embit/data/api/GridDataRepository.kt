@@ -163,8 +163,38 @@ class GridDataRepository(
         limit: Int
     ): Result<List<SmartChargingSession>> {
         return try {
-            // TODO: Implement Firestore query
-            Result.success(emptyList())
+            val querySnapshot = firestore
+                .collection("users")
+                .document(userId)
+                .collection("charging_sessions")
+                .orderBy("startTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(limit.toLong())
+                .get()
+                .await()
+
+            val sessions = querySnapshot.documents.mapNotNull { doc ->
+                try {
+                    SmartChargingSession(
+                        id = doc.getLong("id") ?: 0,
+                        userId = doc.getString("userId") ?: userId,
+                        startTime = doc.getLong("startTime") ?: 0,
+                        endTime = doc.getLong("endTime"),
+                        startBatteryLevel = doc.getLong("startBatteryLevel")?.toInt() ?: 0,
+                        endBatteryLevel = doc.getLong("endBatteryLevel")?.toInt(),
+                        energyConsumedKwh = doc.getDouble("energyConsumedKwh") ?: 0.0,
+                        averageCarbonIntensity = doc.getDouble("averageCarbonIntensity") ?: 0.0,
+                        averagePricePerKwh = doc.getDouble("averagePricePerKwh") ?: 0.0,
+                        costEstimate = doc.getDouble("costEstimate") ?: 0.0,
+                        carbonEmissions = doc.getDouble("carbonEmissions") ?: 0.0,
+                        wasOptimal = doc.getBoolean("wasOptimal") ?: false,
+                        potentialSavings = doc.getDouble("potentialSavings")
+                    )
+                } catch (e: Exception) {
+                    null // Skip malformed documents
+                }
+            }
+
+            Result.success(sessions)
         } catch (e: Exception) {
             Result.failure(Exception("Failed to get charging history: ${e.message}"))
         }

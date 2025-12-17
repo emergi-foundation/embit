@@ -181,6 +181,21 @@ val sharedModule = module {
         )
     }
 
+    factory {
+        TrackChargingSessionUseCase(
+            batteryRepository = get(),
+            gridDataRepository = get(),
+            authRepository = get()
+        )
+    }
+
+    factory {
+        GetChargingAnalyticsUseCase(
+            gridDataRepository = get(),
+            authRepository = get()
+        )
+    }
+
     // VPP Use Cases
     factory {
         ParticipateInDREventUseCase(
