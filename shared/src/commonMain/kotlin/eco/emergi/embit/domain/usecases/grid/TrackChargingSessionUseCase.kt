@@ -28,9 +28,11 @@ class TrackChargingSessionUseCase(
      */
     operator fun invoke(): Flow<ChargingSessionEvent> = flow {
         batteryRepository.observeLatestReading().collect { reading ->
-            val event = processReading(reading)
-            if (event != null) {
-                emit(event)
+            if (reading != null) {
+                val event = processReading(reading)
+                if (event != null) {
+                    emit(event)
+                }
             }
         }
     }
