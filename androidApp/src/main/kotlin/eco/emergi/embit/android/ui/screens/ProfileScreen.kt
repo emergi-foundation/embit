@@ -44,6 +44,7 @@ fun ProfileScreen(
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+    val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository = koinInject()
 
     // Create ViewModel
     val viewModel = remember(scope) {
@@ -54,6 +55,7 @@ fun ProfileScreen(
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,
+            userPreferencesRepository = userPreferencesRepository,
             viewModelScope = scope
         )
     }

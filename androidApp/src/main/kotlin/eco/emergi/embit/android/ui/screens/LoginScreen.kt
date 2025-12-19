@@ -50,6 +50,7 @@ fun LoginScreen(
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+    val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository = koinInject()
 
     // Create ViewModel
     val viewModel = remember(scope) {
@@ -60,12 +61,27 @@ fun LoginScreen(
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,
+            userPreferencesRepository = userPreferencesRepository,
             viewModelScope = scope
         )
     }
 
     val uiState by viewModel.uiState.collectAsState()
     val authState by viewModel.authState.collectAsState()
+
+    // Trigger initial sync when auth state becomes Authenticated
+    val bidirectionalSyncUseCase: eco.emergi.embit.domain.usecases.sync.BidirectionalSyncUseCase = koinInject()
+    LaunchedEffect(authState) {
+        if (authState is eco.emergi.embit.domain.models.AuthState.Authenticated) {
+            // Trigger initial sync in background
+            bidirectionalSyncUseCase(
+                maxUploadBatchSize = 100,
+                maxDownloadLimit = 1000,
+                conflictStrategy = eco.emergi.embit.domain.usecases.sync.ImportBatteryDataUseCase.ConflictStrategy.KEEP_NEWER,
+                syncDirection = eco.emergi.embit.domain.usecases.sync.BidirectionalSyncUseCase.SyncDirection.BOTH
+            )
+        }
+    }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

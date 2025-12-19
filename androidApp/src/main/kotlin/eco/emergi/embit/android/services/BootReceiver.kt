@@ -11,10 +11,13 @@ import android.util.Log
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.d("BootReceiver", "Device booted, scheduling battery monitoring")
+            Log.d("BootReceiver", "Device booted, scheduling background workers")
 
             // Schedule periodic battery monitoring
             BatteryWorkScheduler.schedulePeriodicMonitoring(context)
+
+            // Schedule periodic charging session tracking
+            BatteryWorkScheduler.scheduleChargingSessionTracking(context)
         }
     }
 }

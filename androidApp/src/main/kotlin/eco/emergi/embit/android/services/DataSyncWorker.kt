@@ -8,22 +8,26 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import eco.emergi.embit.domain.models.SyncResult
 import eco.emergi.embit.domain.repositories.IAuthRepository
+import eco.emergi.embit.domain.usecases.sync.BidirectionalSyncUseCase
 import eco.emergi.embit.domain.usecases.sync.GetSyncSettingsUseCase
-import eco.emergi.embit.domain.usecases.sync.SyncBatteryDataUseCase
+import eco.emergi.embit.domain.usecases.sync.ImportBatteryDataUseCase
 
 /**
- * WorkManager worker for periodic data synchronization to the cloud.
+ * WorkManager worker for bidirectional data synchronization with the cloud.
  *
- * This worker runs periodically to sync battery readings to Firestore
- * when the user is authenticated and has auto-sync enabled.
+ * This worker runs periodically to:
+ * 1. Upload unsynced battery readings to Firestore
+ * 2. Download new/updated readings from Firestore
+ * 3. Resolve conflicts using smart strategies
+ *
+ * Runs when the user is authenticated and has auto-sync enabled.
  */
 @HiltWorker
 class DataSyncWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val syncBatteryDataUseCase: SyncBatteryDataUseCase,
+    private val bidirectionalSyncUseCase: BidirectionalSyncUseCase,
     private val getSyncSettingsUseCase: GetSyncSettingsUseCase,
     private val authRepository: IAuthRepository
 ) : CoroutineWorker(appContext, workerParams) {
@@ -51,17 +55,23 @@ class DataSyncWorker @AssistedInject constructor(
                 return Result.success() // Skip sync if WiFi-only and not on WiFi
             }
 
-            // Perform sync
-            when (val syncResult = syncBatteryDataUseCase(settings.maxBatchSize)) {
-                is SyncResult.Success -> {
+            // Perform bidirectional sync (upload + download)
+            when (val syncResult = bidirectionalSyncUseCase(
+                maxUploadBatchSize = settings.maxBatchSize,
+                maxDownloadLimit = 1000,
+                conflictStrategy = ImportBatteryDataUseCase.ConflictStrategy.KEEP_NEWER,
+                syncDirection = BidirectionalSyncUseCase.SyncDirection.BOTH
+            )) {
+                is BidirectionalSyncUseCase.BidirectionalSyncResult.Success -> {
+                    // Log sync statistics
+                    android.util.Log.d(TAG, "Sync completed: " +
+                            "uploaded=${syncResult.uploadedCount}, " +
+                            "imported=${syncResult.importedCount}, " +
+                            "conflicts=${syncResult.conflictsResolved}")
                     Result.success()
                 }
-                is SyncResult.PartialSuccess -> {
-                    // Some data synced, retry for the rest
-                    Result.retry()
-                }
-                is SyncResult.Failure -> {
-                    // Failed to sync, will retry later
+                is BidirectionalSyncUseCase.BidirectionalSyncResult.Failure -> {
+                    android.util.Log.e(TAG, "Sync failed: ${syncResult.error}")
                     Result.retry()
                 }
             }

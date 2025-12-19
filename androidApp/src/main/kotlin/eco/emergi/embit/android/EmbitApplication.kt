@@ -32,5 +32,8 @@ class EmbitApplication : Application() {
 
         // Schedule periodic battery monitoring
         BatteryWorkScheduler.schedulePeriodicMonitoring(this)
+
+        // Schedule periodic charging session tracking
+        BatteryWorkScheduler.scheduleChargingSessionTracking(this)
     }
 }
