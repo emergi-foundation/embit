@@ -1,5 +1,9 @@
 package eco.emergi.embit.android.ui.screens
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -17,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -25,8 +30,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.ui.components.GoogleSignInButton
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.usecases.auth.*
+import eco.emergi.embit.platform.auth.GoogleSignInManager
 import eco.emergi.embit.presentation.AuthUiState
 import eco.emergi.embit.presentation.AuthViewModel
 import kotlinx.coroutines.launch
@@ -39,10 +46,14 @@ import org.koin.compose.koinInject
 @Composable
 fun SignUpScreen(
     onNavigateBack: () -> Unit,
-    onSignUpSuccess: () -> Unit
+    onSignUpSuccess: (isNewUser: Boolean) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+
+    // Google Sign-In Manager
+    val googleSignInManager = remember { GoogleSignInManager(context) }
 
     // Get use cases from Koin
     val observeAuthStateUseCase: ObserveAuthStateUseCase = koinInject()
@@ -51,6 +62,8 @@ fun SignUpScreen(
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+    val signInWithGoogleUseCase: SignInWithGoogleUseCase = koinInject()
+    val isNewUserUseCase: IsNewUserUseCase = koinInject()
     val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository = koinInject()
 
     // Create ViewModel
@@ -62,6 +75,8 @@ fun SignUpScreen(
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,
+            signInWithGoogleUseCase = signInWithGoogleUseCase,
+            isNewUserUseCase = isNewUserUseCase,
             userPreferencesRepository = userPreferencesRepository,
             viewModelScope = scope
         )
@@ -69,6 +84,31 @@ fun SignUpScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val authState by viewModel.authState.collectAsState()
+    val isNewUser by viewModel.isNewUser.collectAsState()
+
+    // Snackbar host state
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // One Tap launcher
+    val oneTapLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.let { data ->
+                val idToken = googleSignInManager.getGoogleIdToken(data)
+                if (idToken != null) {
+                    viewModel.signInWithGoogle(idToken)
+                } else {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Failed to get Google ID token",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -77,13 +117,11 @@ fun SignUpScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-
     // Handle auth state changes
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
-                onSignUpSuccess()
+                onSignUpSuccess(isNewUser)
             }
             else -> {
                 // Do nothing for other states
@@ -156,6 +194,46 @@ fun SignUpScreen(
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
+
+                // Google Sign-In button
+                GoogleSignInButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val result = googleSignInManager.beginOneTapSignIn()
+                                oneTapLauncher.launch(
+                                    IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                                )
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(
+                                    message = "Google Sign-In not available: ${e.message}",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
+                    },
+                    text = "Sign up with Google",
+                    isLoading = uiState is AuthUiState.Loading,
+                    enabled = uiState !is AuthUiState.Loading
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Divider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "  or use email  ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Display name field
                 OutlinedTextField(

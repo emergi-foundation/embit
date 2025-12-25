@@ -22,7 +22,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import eco.emergi.embit.android.ui.components.SolarPoweredIndicator
 import eco.emergi.embit.android.ui.screens.*
+import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.models.GridStatus
+import eco.emergi.embit.domain.usecases.auth.ObserveAuthStateUseCase
 import eco.emergi.embit.domain.usecases.grid.ObserveGridStatusUseCase
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
@@ -37,6 +39,24 @@ fun EmbitApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Auto sign-in: Observe auth state and navigate accordingly
+    val observeAuthStateUseCase: ObserveAuthStateUseCase = koinInject()
+    var authChecked by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        observeAuthStateUseCase().collectLatest { authState ->
+            if (!authChecked) {
+                authChecked = true
+                // Auto-navigate to Monitor if already authenticated
+                if (authState is AuthState.Authenticated && currentRoute == Screen.Login.route) {
+                    navController.navigate(Screen.Monitor.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            }
+        }
+    }
+
     // Observe grid status globally for solar indicator
     val observeGridStatusUseCase: ObserveGridStatusUseCase = koinInject()
     var gridStatus by remember { mutableStateOf<GridStatus?>(null) }
@@ -47,12 +67,13 @@ fun EmbitApp() {
         }
     }
 
-    // Determine if we should show bottom bar (hide on auth screens)
+    // Determine if we should show bottom bar (hide on auth screens and onboarding)
     val showBottomBar = currentRoute !in listOf(
         Screen.Login.route,
         Screen.SignUp.route,
         Screen.Profile.route,
-        Screen.ForgotPassword.route
+        Screen.ForgotPassword.route,
+        Screen.PreferencesSetup.route
     )
 
     Scaffold(
@@ -90,7 +111,7 @@ fun EmbitApp() {
             // Main navigation content
             NavHost(
                 navController = navController,
-                startDestination = Screen.Monitor.route
+                startDestination = Screen.Login.route
             ) {
             composable(Screen.Monitor.route) {
                 BatteryMonitorScreen()
@@ -124,9 +145,15 @@ fun EmbitApp() {
                     onNavigateToForgotPassword = {
                         navController.navigate(Screen.ForgotPassword.route)
                     },
-                    onLoginSuccess = {
-                        navController.navigate(Screen.Monitor.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                    onLoginSuccess = { isNewUser ->
+                        if (isNewUser) {
+                            navController.navigate(Screen.PreferencesSetup.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(Screen.Monitor.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
                         }
                     }
                 )
@@ -137,9 +164,20 @@ fun EmbitApp() {
                     onNavigateBack = {
                         navController.popBackStack()
                     },
-                    onSignUpSuccess = {
-                        navController.navigate(Screen.Monitor.route) {
+                    onSignUpSuccess = { isNewUser ->
+                        // Always show preferences setup for new sign-ups
+                        navController.navigate(Screen.PreferencesSetup.route) {
                             popUpTo(Screen.SignUp.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.PreferencesSetup.route) {
+                PreferencesSetupScreen(
+                    onComplete = {
+                        navController.navigate(Screen.Monitor.route) {
+                            popUpTo(Screen.PreferencesSetup.route) { inclusive = true }
                         }
                     }
                 )
@@ -178,6 +216,7 @@ sealed class Screen(val route: String, val label: String = "", val icon: ImageVe
     data object SignUp : Screen("signup")
     data object Profile : Screen("profile")
     data object ForgotPassword : Screen("forgot_password")
+    data object PreferencesSetup : Screen("preferences_setup")
 }
 
 private val bottomNavItems = listOf(

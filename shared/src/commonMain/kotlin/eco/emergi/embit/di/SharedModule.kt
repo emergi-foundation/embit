@@ -123,6 +123,18 @@ val sharedModule = module {
         )
     }
 
+    factory {
+        SignInWithGoogleUseCase(
+            authRepository = get()
+        )
+    }
+
+    factory {
+        IsNewUserUseCase(
+            userPreferencesRepository = get()
+        )
+    }
+
     // Sync Use Cases
     factory {
         ObserveSyncStatusUseCase(

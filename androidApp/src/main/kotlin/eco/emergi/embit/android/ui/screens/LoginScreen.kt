@@ -1,5 +1,9 @@
 package eco.emergi.embit.android.ui.screens
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -15,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -23,8 +28,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.ui.components.GoogleSignInButton
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.usecases.auth.*
+import eco.emergi.embit.platform.auth.GoogleSignInManager
 import eco.emergi.embit.presentation.AuthUiState
 import eco.emergi.embit.presentation.AuthViewModel
 import kotlinx.coroutines.launch
@@ -38,10 +45,14 @@ import org.koin.compose.koinInject
 fun LoginScreen(
     onNavigateToSignUp: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: (isNewUser: Boolean) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+
+    // Google Sign-In Manager
+    val googleSignInManager = remember { GoogleSignInManager(context) }
 
     // Get use cases from Koin
     val observeAuthStateUseCase: ObserveAuthStateUseCase = koinInject()
@@ -50,6 +61,8 @@ fun LoginScreen(
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+    val signInWithGoogleUseCase: SignInWithGoogleUseCase = koinInject()
+    val isNewUserUseCase: IsNewUserUseCase = koinInject()
     val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository = koinInject()
 
     // Create ViewModel
@@ -61,6 +74,8 @@ fun LoginScreen(
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,
+            signInWithGoogleUseCase = signInWithGoogleUseCase,
+            isNewUserUseCase = isNewUserUseCase,
             userPreferencesRepository = userPreferencesRepository,
             viewModelScope = scope
         )
@@ -68,6 +83,43 @@ fun LoginScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val authState by viewModel.authState.collectAsState()
+    val isNewUser by viewModel.isNewUser.collectAsState()
+
+    // Snackbar host state
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // One Tap launcher
+    val oneTapLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.let { data ->
+                val idToken = googleSignInManager.getGoogleIdToken(data)
+                if (idToken != null) {
+                    viewModel.signInWithGoogle(idToken)
+                } else {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Failed to get Google ID token",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Auto-trigger One Tap on screen load
+    LaunchedEffect(Unit) {
+        try {
+            val result = googleSignInManager.beginOneTapSignIn()
+            oneTapLauncher.launch(
+                IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+            )
+        } catch (e: Exception) {
+            // One Tap not available - user can still use manual Google Sign-In button or email/password
+        }
+    }
 
     // Trigger initial sync when auth state becomes Authenticated
     val bidirectionalSyncUseCase: eco.emergi.embit.domain.usecases.sync.BidirectionalSyncUseCase = koinInject()
@@ -87,13 +139,11 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-
     // Handle auth state changes
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
-                onLoginSuccess()
+                onLoginSuccess(isNewUser)
             }
             else -> {
                 // Do nothing for other states
@@ -156,6 +206,45 @@ fun LoginScreen(
                 )
 
                 Spacer(modifier = Modifier.height(48.dp))
+
+                // Google Sign-In button
+                GoogleSignInButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val result = googleSignInManager.beginOneTapSignIn()
+                                oneTapLauncher.launch(
+                                    IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                                )
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(
+                                    message = "Google Sign-In not available: ${e.message}",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
+                    },
+                    isLoading = uiState is AuthUiState.Loading,
+                    enabled = uiState !is AuthUiState.Loading
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Divider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "  or continue with email  ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Email field
                 OutlinedTextField(
@@ -246,25 +335,16 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Divider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "  or  ",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Sign up link
+                Text(
+                    text = "Don't have an account?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = onNavigateToSignUp,
                     modifier = Modifier

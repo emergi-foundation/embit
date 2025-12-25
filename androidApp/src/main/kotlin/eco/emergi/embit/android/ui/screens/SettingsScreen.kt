@@ -65,6 +65,8 @@ fun SettingsScreen(
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+    val signInWithGoogleUseCase: SignInWithGoogleUseCase = koinInject()
+    val isNewUserUseCase: IsNewUserUseCase = koinInject()
     val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository = koinInject()
 
     val authViewModel = remember {
@@ -75,6 +77,8 @@ fun SettingsScreen(
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,
+            signInWithGoogleUseCase = signInWithGoogleUseCase,
+            isNewUserUseCase = isNewUserUseCase,
             userPreferencesRepository = userPreferencesRepository,
             viewModelScope = scope
         )

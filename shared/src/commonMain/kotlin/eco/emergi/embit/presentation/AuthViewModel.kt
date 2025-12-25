@@ -20,6 +20,8 @@ class AuthViewModel(
     private val signOutUseCase: SignOutUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val sendPasswordResetUseCase: SendPasswordResetUseCase,
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
+    private val isNewUserUseCase: IsNewUserUseCase,
     private val userPreferencesRepository: IUserPreferencesRepository,
     private val viewModelScope: CoroutineScope
 ) {
@@ -31,6 +33,9 @@ class AuthViewModel(
 
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
+
+    private val _isNewUser = MutableStateFlow(false)
+    val isNewUser: StateFlow<Boolean> = _isNewUser.asStateFlow()
 
     init {
         observeAuthState()
@@ -97,6 +102,39 @@ class AuthViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * Sign in with Google ID token
+     */
+    fun signInWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+
+            when (val result = signInWithGoogleUseCase(idToken)) {
+                is AuthResult.Success -> {
+                    _uiState.value = AuthUiState.Success("Signed in with Google successfully")
+
+                    // Check if this is a new user
+                    _isNewUser.value = isNewUserUseCase()
+
+                    // Create default user preferences in Firestore if new user
+                    // (This also initializes preferences for existing users if they don't have any)
+                    initializeDefaultPreferences()
+                    // Note: Initial sync will be triggered by Android app layer
+                }
+                is AuthResult.Failure -> {
+                    _uiState.value = AuthUiState.Error(result.message)
+                }
+            }
+        }
+    }
+
+    /**
+     * Clear the new user flag after preferences setup is complete
+     */
+    fun clearNewUserFlag() {
+        _isNewUser.value = false
     }
 
     /**
