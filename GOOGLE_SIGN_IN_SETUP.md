@@ -12,10 +12,12 @@ This document provides step-by-step instructions to complete the Google Sign-In 
 - Updated LoginScreen and SignUpScreen with Google Sign-In
 - Updated Navigation with auto sign-in logic and new user flow
 - Added Google logo placeholder
+- Firebase Console configuration (SHA-1 fingerprints, Google provider enabled)
+- Updated Web Client ID in GoogleSignInManager
+- Updated google-services.json with OAuth credentials
 
 ❌ **Remaining (Manual Steps):**
-- Firebase Console configuration
-- Update Web Client ID in GoogleSignInManager
+- Configure GitHub Secrets for automated Firebase App Distribution deployment (Step 7)
 
 ## Firebase Console Configuration
 
@@ -102,6 +104,63 @@ SHA1: A1:B2:C3:D4:E5:F6:G7:H8:I9:J0:K1:L2:M3:N4:O5:P6:Q7:R8:S9:T0
    ```
 
 4. Save the file
+
+### Step 7: Configure GitHub Secrets for Firebase App Distribution
+
+To enable automated deployment to your testers when you push QA tags, you need to configure GitHub Secrets with Firebase service account credentials.
+
+#### 7.1: Generate Firebase Service Account Key
+
+1. Open the Firebase Console: https://console.firebase.google.com/project/embit-dd383
+2. Go to **Project Settings** (gear icon) → **Service Accounts** tab
+3. Scroll down to the **Firebase Admin SDK** section
+4. Click **Generate new private key**
+5. Confirm by clicking **Generate key**
+6. A JSON file will be downloaded (e.g., `embit-dd383-firebase-adminsdk-xxxxx.json`)
+7. Keep this file secure - it provides admin access to your Firebase project
+
+#### 7.2: Add Secret to GitHub Repository
+
+1. Go to your GitHub repository: https://github.com/yourusername/embit
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Set the name to: `FIREBASE_SERVICE_CREDENTIALS_FILE_CONTENT`
+5. Open the downloaded JSON file and copy its entire contents
+6. Paste the JSON contents into the **Secret** field
+7. Click **Add secret**
+
+**Important:** The secret name MUST be exactly `FIREBASE_SERVICE_CREDENTIALS_FILE_CONTENT` - this matches what's used in the GitHub Actions workflow.
+
+#### 7.3: Verify Configuration
+
+1. Push a new QA tag to trigger deployment:
+   ```bash
+   git tag qa-google-signin-v2.2.1
+   git push origin qa-google-signin-v2.2.1
+   ```
+
+2. Go to GitHub **Actions** tab and watch the workflow run
+
+3. The workflow should now:
+   - ✅ Build the APK successfully
+   - ✅ Upload to Firebase App Distribution
+   - ✅ Send notifications to your testers
+
+4. Check Firebase Console → **App Distribution** to verify the build appears
+
+#### 7.4: Troubleshooting GitHub Secrets
+
+**Error: "Failed to authenticate, have you run firebase login?"**
+- **Cause:** Secret not configured or has wrong name
+- **Solution:** Verify secret name is exactly `FIREBASE_SERVICE_CREDENTIALS_FILE_CONTENT`
+
+**Error: "Invalid service account credentials"**
+- **Cause:** JSON file content is malformed or incomplete
+- **Solution:** Re-copy the entire JSON file contents, including opening `{` and closing `}`
+
+**Build succeeds but upload fails silently**
+- **Cause:** Service account doesn't have Firebase App Distribution permissions
+- **Solution:** In Firebase Console → Project Settings → Service Accounts, verify the service account has "Editor" role
 
 ## Testing
 
