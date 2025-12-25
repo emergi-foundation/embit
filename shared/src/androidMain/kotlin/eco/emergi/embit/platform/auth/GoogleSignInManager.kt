@@ -25,14 +25,9 @@ class GoogleSignInManager(
 
     /**
      * Web Client ID from Firebase Console.
-     * TODO: Replace with actual Web Client ID from google-services.json after Firebase configuration.
-     *
-     * To find this:
-     * 1. Open google-services.json
-     * 2. Find the oauth_client with "client_type": 3
-     * 3. Copy the "client_id" value
+     * Extracted from google-services.json (oauth_client with client_type: 3)
      */
-    private val webClientId = "YOUR_WEB_CLIENT_ID_HERE"
+    private val webClientId = "618653827795-i288964ckfm9j7dlqs9coh2l91mo0ors.apps.googleusercontent.com"
 
     /**
      * Creates a One Tap sign-in request with configured settings.
