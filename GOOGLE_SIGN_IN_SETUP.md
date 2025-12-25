@@ -124,12 +124,12 @@ To enable automated deployment to your testers when you push QA tags, you need t
 1. Go to your GitHub repository: https://github.com/yourusername/embit
 2. Navigate to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
-4. Set the name to: `FIREBASE_SERVICE_CREDENTIALS_FILE_CONTENT`
+4. Set the name to: `FIREBASE_SERVICE_CREDENTIALS`
 5. Open the downloaded JSON file and copy its entire contents
 6. Paste the JSON contents into the **Secret** field
 7. Click **Add secret**
 
-**Important:** The secret name MUST be exactly `FIREBASE_SERVICE_CREDENTIALS_FILE_CONTENT` - this matches what's used in the GitHub Actions workflow.
+**Important:** The secret name MUST be exactly `FIREBASE_SERVICE_CREDENTIALS` - this matches what's used in the GitHub Actions workflow.
 
 #### 7.3: Verify Configuration
 
@@ -152,7 +152,7 @@ To enable automated deployment to your testers when you push QA tags, you need t
 
 **Error: "Failed to authenticate, have you run firebase login?"**
 - **Cause:** Secret not configured or has wrong name
-- **Solution:** Verify secret name is exactly `FIREBASE_SERVICE_CREDENTIALS_FILE_CONTENT`
+- **Solution:** Verify secret name is exactly `FIREBASE_SERVICE_CREDENTIALS`
 
 **Error: "Invalid service account credentials"**
 - **Cause:** JSON file content is malformed or incomplete
