@@ -35,6 +35,16 @@ android {
     }
 
     signingConfigs {
+        create("debug") {
+            // Use custom debug keystore from environment if available (CI/CD)
+            // Otherwise use default Android debug keystore (local builds)
+            if (System.getenv("KEYSTORE_FILE") != null) {
+                storeFile = file(System.getenv("KEYSTORE_FILE"))
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "androiddebugkey"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+            }
+        }
         create("release") {
             // Use keystore properties if available (local builds)
             // Otherwise use environment variables (CI/CD)
@@ -91,6 +101,7 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
