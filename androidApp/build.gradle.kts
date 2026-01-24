@@ -35,7 +35,7 @@ android {
     }
 
     signingConfigs {
-        create("debug") {
+        getByName("debug") {
             // Use custom debug keystore from environment if available (CI/CD)
             // Otherwise use default Android debug keystore (local builds)
             if (System.getenv("KEYSTORE_FILE") != null) {
