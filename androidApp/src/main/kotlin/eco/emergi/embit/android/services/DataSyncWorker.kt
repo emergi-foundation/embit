@@ -8,6 +8,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import eco.emergi.embit.android.analytics.AnalyticsManager
+import eco.emergi.embit.android.analytics.CrashlyticsManager
 import eco.emergi.embit.domain.repositories.IAuthRepository
 import eco.emergi.embit.domain.usecases.sync.BidirectionalSyncUseCase
 import eco.emergi.embit.domain.usecases.sync.GetSyncSettingsUseCase
@@ -29,31 +31,43 @@ class DataSyncWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val bidirectionalSyncUseCase: BidirectionalSyncUseCase,
     private val getSyncSettingsUseCase: GetSyncSettingsUseCase,
-    private val authRepository: IAuthRepository
+    private val authRepository: IAuthRepository,
+    private val analyticsManager: AnalyticsManager,
+    private val crashlyticsManager: CrashlyticsManager
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
+        val startTime = System.currentTimeMillis()
+
         return try {
             // Check if user is authenticated
             if (!authRepository.isSignedIn()) {
+                crashlyticsManager.log("Sync skipped: User not authenticated")
                 return Result.success() // Skip sync if not signed in
             }
 
             // Get sync settings
             val settingsResult = getSyncSettingsUseCase()
             val settings = settingsResult.getOrNull() ?: run {
+                crashlyticsManager.log("Sync failed: Could not get sync settings")
                 return Result.retry()
             }
 
             // Check if auto-sync is enabled
             if (!settings.autoSyncEnabled) {
+                crashlyticsManager.log("Sync skipped: Auto-sync disabled")
                 return Result.success() // Skip sync if auto-sync is disabled
             }
 
             // Check WiFi requirement
             if (settings.syncOnWifiOnly && !isWifiConnected()) {
+                crashlyticsManager.log("Sync skipped: WiFi-only enabled but not on WiFi")
                 return Result.success() // Skip sync if WiFi-only and not on WiFi
             }
+
+            // Log sync started
+            analyticsManager.logSyncStarted(triggerSource = "automatic")
+            crashlyticsManager.setIsSyncing(true)
 
             // Perform bidirectional sync (upload + download)
             when (val syncResult = bidirectionalSyncUseCase(
@@ -63,20 +77,56 @@ class DataSyncWorker @AssistedInject constructor(
                 syncDirection = BidirectionalSyncUseCase.SyncDirection.BOTH
             )) {
                 is BidirectionalSyncUseCase.BidirectionalSyncResult.Success -> {
+                    val duration = System.currentTimeMillis() - startTime
+                    val totalRecords = syncResult.uploadedCount + syncResult.importedCount
+
                     // Log sync statistics
                     android.util.Log.d(TAG, "Sync completed: " +
                             "uploaded=${syncResult.uploadedCount}, " +
                             "imported=${syncResult.importedCount}, " +
                             "conflicts=${syncResult.conflictsResolved}")
+
+                    // Log analytics
+                    analyticsManager.logSyncCompleted(
+                        recordCount = totalRecords,
+                        durationMs = duration,
+                        triggerSource = "automatic"
+                    )
+
+                    // Update Crashlytics context
+                    crashlyticsManager.setIsSyncing(false)
+                    crashlyticsManager.setLastSyncTimestamp(System.currentTimeMillis())
+                    crashlyticsManager.setPendingSyncCount(0)
+
                     Result.success()
                 }
                 is BidirectionalSyncUseCase.BidirectionalSyncResult.Failure -> {
                     android.util.Log.e(TAG, "Sync failed: ${syncResult.error}")
+
+                    // Log analytics
+                    analyticsManager.logSyncFailed(
+                        errorType = "sync_error",
+                        errorMessage = syncResult.error,
+                        triggerSource = "automatic"
+                    )
+
+                    // Log to Crashlytics
+                    crashlyticsManager.logException(Exception("Sync failed: ${syncResult.error}"))
+                    crashlyticsManager.setIsSyncing(false)
+
                     Result.retry()
                 }
             }
         } catch (e: Exception) {
-            // Log error but don't fail permanently
+            // Log error to Crashlytics and Analytics
+            crashlyticsManager.logException(e)
+            crashlyticsManager.setIsSyncing(false)
+            analyticsManager.logSyncFailed(
+                errorType = "sync_exception",
+                errorMessage = e.message,
+                triggerSource = "automatic"
+            )
+            // Don't fail permanently
             Result.retry()
         }
     }

@@ -15,15 +15,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.services.BatteryWorkScheduler
 import eco.emergi.embit.android.services.DataSyncScheduler
 import eco.emergi.embit.android.services.GridMonitorScheduler
+import eco.emergi.embit.android.ui.components.FeedbackDialog
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.models.EnergyProduct
 import eco.emergi.embit.domain.models.EnergyProducts
+import eco.emergi.embit.domain.models.Feedback
 import eco.emergi.embit.domain.models.SyncInterval
 import eco.emergi.embit.domain.models.SyncResult
 import eco.emergi.embit.domain.models.SyncSettings
+import eco.emergi.embit.domain.repositories.IFeedbackRepository
+import javax.inject.Inject
 import eco.emergi.embit.domain.usecases.ManageBatteryDataUseCase
 import eco.emergi.embit.domain.usecases.auth.*
 import eco.emergi.embit.domain.usecases.grid.GetEnergyProductUseCase
@@ -45,11 +50,13 @@ import java.util.*
 @Composable
 fun SettingsScreen(
     onNavigateToLogin: () -> Unit = {},
-    onNavigateToProfile: () -> Unit = {}
+    onNavigateToProfile: () -> Unit = {},
+    analyticsManager: AnalyticsManager? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val manageDataUseCase: ManageBatteryDataUseCase = koinInject()
+    val feedbackRepository: IFeedbackRepository = koinInject()
 
     val viewModel = remember {
         SettingsViewModel(
@@ -114,6 +121,9 @@ fun SettingsScreen(
                 .getBoolean("notifications_enabled", true)
         )
     }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
+    var feedbackSubmitSuccess by remember { mutableStateOf(false) }
+    var feedbackSubmitError by remember { mutableStateOf<String?>(null) }
 
     // Load sync settings when authenticated
     LaunchedEffect(authState) {
@@ -637,6 +647,94 @@ fun SettingsScreen(
                 }
             }
 
+            // Feedback Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Feedback", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "We'd love to hear from you! Share your experience, report bugs, or suggest new features.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = { showFeedbackDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = authState is AuthState.Authenticated
+                    ) {
+                        Icon(Icons.Default.Star, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Rate Embit")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showFeedbackDialog = true },
+                            modifier = Modifier.weight(1f),
+                            enabled = authState is AuthState.Authenticated
+                        ) {
+                            Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Report Bug", style = MaterialTheme.typography.bodySmall)
+                        }
+
+                        OutlinedButton(
+                            onClick = { showFeedbackDialog = true },
+                            modifier = Modifier.weight(1f),
+                            enabled = authState is AuthState.Authenticated
+                        ) {
+                            Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Suggest", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+
+                    if (authState !is AuthState.Authenticated) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Sign in to submit feedback",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+
+                    // Show success/error messages
+                    if (feedbackSubmitSuccess) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "✓ Thank you for your feedback!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+
+                    feedbackSubmitError?.let { error ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Failed to submit feedback: $error",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+            }
+
             // About Section
             Card(
                 modifier = Modifier
@@ -748,6 +846,45 @@ fun SettingsScreen(
                         Text("Cancel")
                     }
                 }
+            )
+        }
+
+        // Feedback Dialog
+        if (showFeedbackDialog && authState is AuthState.Authenticated) {
+            val userId = currentUser?.uid ?: ""
+            // Get current battery status from databaseStats (if available)
+            val batteryPercentage = 0 // TODO: Get from current battery reading
+            val isCharging = false // TODO: Get from current battery reading
+
+            FeedbackDialog(
+                onDismiss = {
+                    showFeedbackDialog = false
+                    feedbackSubmitSuccess = false
+                    feedbackSubmitError = null
+                },
+                onSubmit = { feedback ->
+                    scope.launch {
+                        feedbackRepository.submitFeedback(feedback)
+                            .onSuccess { feedbackId ->
+                                feedbackSubmitSuccess = true
+                                feedbackSubmitError = null
+                                showFeedbackDialog = false
+
+                                // Log analytics event
+                                analyticsManager?.logFeedbackSubmitted(
+                                    feedbackType = feedback.type.name,
+                                    rating = feedback.rating
+                                )
+                            }
+                            .onFailure { error ->
+                                feedbackSubmitError = error.message
+                                feedbackSubmitSuccess = false
+                            }
+                    }
+                },
+                userId = userId,
+                batteryPercentage = batteryPercentage,
+                isCharging = isCharging
             )
         }
 

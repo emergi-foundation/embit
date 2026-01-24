@@ -10,6 +10,7 @@ import eco.emergi.embit.domain.repositories.IAuthRepository
 import eco.emergi.embit.domain.repositories.IGridDataRepository
 import eco.emergi.embit.domain.repositories.ISyncRepository
 import eco.emergi.embit.domain.usecases.*
+import eco.emergi.embit.domain.usecases.analytics.*
 import eco.emergi.embit.domain.usecases.auth.*
 import eco.emergi.embit.domain.usecases.grid.*
 import eco.emergi.embit.domain.usecases.sync.*
@@ -205,6 +206,15 @@ val sharedModule = module {
         GetChargingAnalyticsUseCase(
             gridDataRepository = get(),
             authRepository = get()
+        )
+    }
+
+    // Analytics Use Cases
+    factory {
+        AggregateHealthMetricsUseCase(
+            batteryRepository = get(),
+            analyticsRepository = get(),
+            analyzeBatteryHealthUseCase = get()
         )
     }
 
