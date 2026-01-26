@@ -3,6 +3,8 @@ package eco.emergi.embit.android.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,8 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Bolt
 import eco.emergi.embit.domain.models.EnergyProduct
 import eco.emergi.embit.domain.models.EnergyProducts
+import eco.emergi.embit.domain.repositories.IUserPreferencesRepository
 import eco.emergi.embit.domain.usecases.grid.SetEnergyProductUseCase
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -34,9 +38,11 @@ fun PreferencesSetupScreen(
 
     // Get use cases from Koin
     val setEnergyProductUseCase: SetEnergyProductUseCase = koinInject()
+    val userPreferencesRepository: IUserPreferencesRepository = koinInject()
 
     // State
     var selectedEnergyProduct by remember { mutableStateOf(EnergyProducts.STANDARD_GRID) }
+    var vppParticipationEnabled by remember { mutableStateOf(true) } // Default ON
     var isSaving by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -177,6 +183,63 @@ fun PreferencesSetupScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // VPP Participation Section
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Bolt,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Grid Participation",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Help stabilize the grid & earn rewards",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = vppParticipationEnabled,
+                                onCheckedChange = { vppParticipationEnabled = it }
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "When enabled, Embit will participate in demand response events to help balance the grid during peak times. You can turn this off anytime in Settings.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
                 // Get Started button
                 Button(
                     onClick = {
@@ -185,6 +248,15 @@ fun PreferencesSetupScreen(
                             try {
                                 // Save energy product
                                 setEnergyProductUseCase(selectedEnergyProduct)
+
+                                // Save VPP participation preference
+                                val currentPrefs = userPreferencesRepository.getUserPreferences().getOrNull()
+                                currentPrefs?.let { prefs ->
+                                    userPreferencesRepository.saveUserPreferences(
+                                        prefs.copy(vppParticipationEnabled = vppParticipationEnabled)
+                                    )
+                                }
+
                                 onComplete()
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar(

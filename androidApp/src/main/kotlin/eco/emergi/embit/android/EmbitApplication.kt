@@ -5,7 +5,9 @@ import dagger.hilt.android.HiltAndroidApp
 import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.analytics.CrashlyticsManager
 import eco.emergi.embit.android.analytics.RemoteConfigManager
+import eco.emergi.embit.android.services.AppStateManager
 import eco.emergi.embit.android.services.BatteryWorkScheduler
+import eco.emergi.embit.android.services.LocationBasedGridManager
 import eco.emergi.embit.di.platformModule
 import eco.emergi.embit.di.sharedModule
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +36,12 @@ class EmbitApplication : Application() {
     @Inject
     lateinit var remoteConfigManager: RemoteConfigManager
 
+    @Inject
+    lateinit var appStateManager: AppStateManager
+
+    @Inject
+    lateinit var locationBasedGridManager: LocationBasedGridManager
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
@@ -51,6 +59,14 @@ class EmbitApplication : Application() {
 
         // Initialize Firebase services
         initializeFirebase()
+
+        // Initialize app state manager for automatic sync
+        appStateManager.initialize()
+
+        // Detect and configure grid region based on location
+        applicationScope.launch {
+            locationBasedGridManager.detectAndSetGridRegion()
+        }
 
         // Schedule periodic battery monitoring
         BatteryWorkScheduler.schedulePeriodicMonitoring(this)

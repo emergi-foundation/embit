@@ -177,6 +177,9 @@ dependencies {
     implementation(libs.firebase.config)
     implementation(libs.play.services.auth)
 
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
     // Testing
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
