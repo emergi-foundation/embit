@@ -73,7 +73,8 @@ fun EmbitApp() {
         Screen.SignUp.route,
         Screen.Profile.route,
         Screen.ForgotPassword.route,
-        Screen.PreferencesSetup.route
+        Screen.PreferencesSetup.route,
+        Screen.LocationPermission.route
     )
 
     Scaffold(
@@ -176,8 +177,19 @@ fun EmbitApp() {
             composable(Screen.PreferencesSetup.route) {
                 PreferencesSetupScreen(
                     onComplete = {
-                        navController.navigate(Screen.Monitor.route) {
+                        // After preferences, request location permission
+                        navController.navigate(Screen.LocationPermission.route) {
                             popUpTo(Screen.PreferencesSetup.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.LocationPermission.route) {
+                LocationPermissionScreen(
+                    onComplete = {
+                        navController.navigate(Screen.Monitor.route) {
+                            popUpTo(Screen.LocationPermission.route) { inclusive = true }
                         }
                     }
                 )
@@ -217,6 +229,7 @@ sealed class Screen(val route: String, val label: String = "", val icon: ImageVe
     data object Profile : Screen("profile")
     data object ForgotPassword : Screen("forgot_password")
     data object PreferencesSetup : Screen("preferences_setup")
+    data object LocationPermission : Screen("location_permission")
 }
 
 private val bottomNavItems = listOf(

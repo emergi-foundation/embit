@@ -63,10 +63,8 @@ class EmbitApplication : Application() {
         // Initialize app state manager for automatic sync
         appStateManager.initialize()
 
-        // Detect and configure grid region based on location
-        applicationScope.launch {
-            locationBasedGridManager.detectAndSetGridRegion()
-        }
+        // Note: Grid region detection now happens in LocationPermissionScreen
+        // during onboarding to request location permission from user
 
         // Schedule periodic battery monitoring
         BatteryWorkScheduler.schedulePeriodicMonitoring(this)
