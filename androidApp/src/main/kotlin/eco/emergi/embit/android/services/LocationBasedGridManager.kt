@@ -43,26 +43,40 @@ class LocationBasedGridManager @Inject constructor(
      * Requests location permission if not granted.
      */
     suspend fun detectAndSetGridRegion(): String? {
+        Log.d(TAG, "Starting grid region detection...")
+
         if (!hasLocationPermission()) {
             Log.w(TAG, "Location permission not granted, using default grid region")
             return null
         }
 
         return try {
+            Log.d(TAG, "Getting current location...")
             val location = getCurrentLocation()
             if (location != null) {
+                Log.d(TAG, "Location obtained: lat=${location.latitude}, lon=${location.longitude}")
+
+                val state = getStateFromLocation(location)
+                Log.d(TAG, "State detected: $state")
+
                 val gridRegion = getGridRegionFromLocation(location)
-                Log.d(TAG, "Detected grid region: $gridRegion")
+                Log.d(TAG, "Mapped to grid region: $gridRegion")
 
                 // Save to user preferences
-                userPreferencesRepository.updateLocation(gridRegion)
+                val result = userPreferencesRepository.updateLocation(gridRegion)
+                result.onSuccess {
+                    Log.d(TAG, "Successfully saved grid region: $gridRegion")
+                }.onFailure { error ->
+                    Log.e(TAG, "Failed to save grid region: ${error.message}", error)
+                }
+
                 gridRegion
             } else {
-                Log.w(TAG, "Could not get current location")
+                Log.w(TAG, "Could not get current location (location is null)")
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error detecting location", e)
+            Log.e(TAG, "Error detecting location: ${e.message}", e)
             null
         }
     }
@@ -87,19 +101,20 @@ class LocationBasedGridManager @Inject constructor(
 
     /**
      * Maps geographic location to grid operator region.
+     * Returns WattTime balancing authority codes.
      */
     private suspend fun getGridRegionFromLocation(location: Location): String {
         val state = getStateFromLocation(location)
 
         return when (state?.uppercase()) {
             // California Independent System Operator
-            "CALIFORNIA", "CA" -> "California"
+            "CALIFORNIA", "CA" -> "CAISO_NORTH"
 
             // Electric Reliability Council of Texas
-            "TEXAS", "TX" -> "Texas"
+            "TEXAS", "TX" -> "ERCOT"
 
             // New York ISO
-            "NEW YORK", "NY" -> "New York"
+            "NEW YORK", "NY" -> "NYISO"
 
             // ISO New England (Northeast states)
             "CONNECTICUT", "CT",
@@ -107,7 +122,7 @@ class LocationBasedGridManager @Inject constructor(
             "MASSACHUSETTS", "MA",
             "NEW HAMPSHIRE", "NH",
             "RHODE ISLAND", "RI",
-            "VERMONT", "VT" -> "New England"
+            "VERMONT", "VT" -> "ISONE"
 
             // PJM Interconnection (Mid-Atlantic and parts of Midwest)
             "PENNSYLVANIA", "PA",
@@ -150,18 +165,18 @@ class LocationBasedGridManager @Inject constructor(
             "OREGON", "OR",
             "UTAH", "UT",
             "WASHINGTON", "WA",
-            "WYOMING", "WY" -> "WECC"
+            "WYOMING", "WY" -> "BPAT"  // Bonneville Power Administration
 
-            // Southeast
-            "FLORIDA", "FL",
+            // Southeast (use closest approximation)
+            "FLORIDA", "FL" -> "FPL"
             "GEORGIA", "GA",
             "ALABAMA", "AL",
-            "SOUTH CAROLINA", "SC" -> "Southeast"
+            "SOUTH CAROLINA", "SC" -> "PACE"  // PacifiCorp East
 
             // Default
             else -> {
-                Log.w(TAG, "Unknown state: $state, defaulting to California")
-                "California"
+                Log.w(TAG, "Unknown state: $state, defaulting to CAISO_NORTH")
+                "CAISO_NORTH"
             }
         }
     }
@@ -204,15 +219,16 @@ class LocationBasedGridManager @Inject constructor(
      */
     fun getGridDisplayName(region: String): String {
         return when (region) {
-            "California" -> "California (CAISO)"
-            "Texas" -> "Texas (ERCOT)"
-            "New York" -> "New York (NYISO)"
-            "New England" -> "New England (ISO-NE)"
+            "CAISO_NORTH", "CAISO_ZP26" -> "California (CAISO)"
+            "ERCOT" -> "Texas (ERCOT)"
+            "NYISO" -> "New York (NYISO)"
+            "ISONE" -> "New England (ISO-NE)"
             "PJM" -> "Mid-Atlantic & Midwest (PJM)"
             "MISO" -> "Midwest (MISO)"
             "SPP" -> "Southwest (SPP)"
-            "WECC" -> "Western US (WECC)"
-            "Southeast" -> "Southeast US"
+            "BPAT" -> "Western US (Bonneville)"
+            "FPL" -> "Florida"
+            "PACE" -> "Southeast US"
             else -> region
         }
     }
