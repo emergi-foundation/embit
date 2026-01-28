@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="eco.emergi.embit.android.services.AppStateManagerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-01-27T03:41:05" hostname="muir" time="5.433">
+  <properties/>
+  <testcase name="test unauthenticated state does not trigger sync" classname="eco.emergi.embit.android.services.AppStateManagerTest" time="5.162"/>
+  <testcase name="test automatic sync is triggered when user authenticates" classname="eco.emergi.embit.android.services.AppStateManagerTest" time="0.094"/>
+  <testcase name="test loading state does not trigger sync" classname="eco.emergi.embit.android.services.AppStateManagerTest" time="0.046"/>
+  <testcase name="test sync handles failure gracefully" classname="eco.emergi.embit.android.services.AppStateManagerTest" time="0.039"/>
+  <testcase name="test manual sync uses correct parameters" classname="eco.emergi.embit.android.services.AppStateManagerTest" time="0.043"/>
+  <testcase name="test sync only runs once per session" classname="eco.emergi.embit.android.services.AppStateManagerTest" time="0.047"/>
+  <system-out><![CDATA[WARNING: No manifest file found at ./AndroidManifest.xml.
+Falling back to the Android OS resources only.
+To remove this warning, annotate your test class with @Config(manifest=Config.NONE).
+]]></system-out>
+  <system-err><![CDATA[No such manifest file: ./AndroidManifest.xml
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+WARNING: A Java agent has been loaded dynamically (/home/ess/.gradle/caches/transforms-4/52bf8444542effe43357d6fb675e17b2/transformed/jetified-byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

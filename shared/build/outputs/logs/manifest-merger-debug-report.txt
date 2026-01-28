@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml:2:13-83
+INJECTED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml:2:13-83
+	package
+		INJECTED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml
+	xmlns:android
+		ADDED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml:2:23-81
+uses-sdk
+INJECTED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml reason: use-sdk injection requested
+INJECTED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml
+INJECTED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml
+	android:targetSdkVersion
+		INJECTED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml
+	android:minSdkVersion
+		INJECTED from /home/ess/Documents/apps/embit/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18271446460902189143.xml

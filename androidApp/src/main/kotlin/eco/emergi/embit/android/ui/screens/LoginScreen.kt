@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.ui.components.GoogleSignInButton
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.usecases.auth.*
@@ -43,6 +44,7 @@ import org.koin.compose.koinInject
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
+    analyticsManager: AnalyticsManager,
     onNavigateToSignUp: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
     onLoginSuccess: (isNewUser: Boolean) -> Unit
@@ -141,9 +143,29 @@ fun LoginScreen(
 
     // Handle auth state changes
     LaunchedEffect(authState) {
-        when (authState) {
+        when (val state = authState) {
             is AuthState.Authenticated -> {
+                // Log successful login
+                val authMethod = if (state.user.email?.contains("google") == true ||
+                                     state.user.displayName != null) "google" else "email"
+                analyticsManager.logLogin(authMethod)
+
+                // Set user ID for analytics
+                analyticsManager.setUserId(state.user.uid)
+
+                // Set user properties
+                analyticsManager.setUserProperty("auth_provider", authMethod)
+
+                // Navigate to next screen
                 onLoginSuccess(isNewUser)
+            }
+            is AuthState.Error -> {
+                // Log login failure
+                analyticsManager.logError(
+                    errorType = "login_failed",
+                    errorMessage = state.message,
+                    errorContext = "LoginScreen"
+                )
             }
             else -> {
                 // Do nothing for other states

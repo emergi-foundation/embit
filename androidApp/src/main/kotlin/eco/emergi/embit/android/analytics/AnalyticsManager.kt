@@ -256,6 +256,31 @@ class AnalyticsManager @Inject constructor(
     }
 
     // ========================================
+    // Custom Events
+    // ========================================
+
+    /**
+     * Log a custom event with dynamic parameters.
+     * Use this for events that don't have a dedicated method.
+     */
+    fun logCustomEvent(eventName: String, params: Map<String, Any> = emptyMap()) {
+        if (!isEnabled) return
+        analytics.logEvent(eventName) {
+            params.forEach { (key, value) ->
+                when (value) {
+                    is String -> param(key, value)
+                    is Long -> param(key, value)
+                    is Int -> param(key, value.toLong())
+                    is Double -> param(key, value)
+                    is Float -> param(key, value.toDouble())
+                    is Boolean -> param(key, if (value) "true" else "false")
+                    else -> param(key, value.toString())
+                }
+            }
+        }
+    }
+
+    // ========================================
     // Helper Methods
     // ========================================
 

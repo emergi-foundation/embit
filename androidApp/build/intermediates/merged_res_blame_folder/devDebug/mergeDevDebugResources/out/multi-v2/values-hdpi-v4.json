@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "eco.emergi.embit.android.androidApp-mergeDevDebugResources-85:/values-hdpi-v4/values-hdpi-v4.xml",
+            "map": [
+                {
+                    "source": "/home/ess/.gradle/caches/transforms-4/6dbf40ac18c0b904385a84d2c4c15c6f/transformed/appcompat-1.7.0/res/values-hdpi-v4/values-hdpi-v4.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "6",
+                        "endColumns": "13",
+                        "endOffsets": "327"
+                    }
+                }
+            ]
+        }
+    ]
+}

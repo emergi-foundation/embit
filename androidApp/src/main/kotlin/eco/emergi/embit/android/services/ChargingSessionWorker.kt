@@ -6,6 +6,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import eco.emergi.embit.android.analytics.AnalyticsManager
+import eco.emergi.embit.android.analytics.CrashlyticsManager
 import eco.emergi.embit.domain.models.BatteryState
 import eco.emergi.embit.domain.models.SmartChargingSession
 import eco.emergi.embit.domain.repositories.IAuthRepository
@@ -31,7 +33,9 @@ class ChargingSessionWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val batteryRepository: IBatteryRepository,
     private val gridDataRepository: IGridDataRepository,
-    private val authRepository: IAuthRepository
+    private val authRepository: IAuthRepository,
+    private val analyticsManager: AnalyticsManager,
+    private val crashlyticsManager: CrashlyticsManager
 ) : CoroutineWorker(appContext, workerParams) {
 
     private val prefs = appContext.getSharedPreferences("charging_sessions", Context.MODE_PRIVATE)
@@ -75,6 +79,16 @@ class ChargingSessionWorker @AssistedInject constructor(
             Result.success()
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Charging session tracking failed: ${e.message}")
+
+            // Log error to analytics and Crashlytics
+            analyticsManager.logError(
+                errorType = "charging_session_tracking_failed",
+                errorMessage = e.message ?: "Unknown error",
+                errorContext = TAG
+            )
+            crashlyticsManager.log("Charging session tracking failed: ${e.message}")
+            crashlyticsManager.logException(e)
+
             Result.retry()
         }
     }
@@ -90,6 +104,20 @@ class ChargingSessionWorker @AssistedInject constructor(
             .apply()
 
         android.util.Log.d(TAG, "Charging session started: ${reading.batteryPercentage}%")
+
+        // Log analytics event
+        analyticsManager.logCustomEvent(
+            eventName = "charging_session_started",
+            params = mapOf(
+                "start_level" to reading.batteryPercentage,
+                "temperature" to (reading.temperatureCelsius ?: 0.0)
+            )
+        )
+
+        // Set Crashlytics context
+        crashlyticsManager.log("Charging session started: ${reading.batteryPercentage}%")
+        crashlyticsManager.setBatteryPercentage(reading.batteryPercentage)
+        crashlyticsManager.setIsCharging(true)
     }
 
     /**
@@ -154,8 +182,42 @@ class ChargingSessionWorker @AssistedInject constructor(
                     "${percentageGained}% gain, " +
                     "cost=$${String.format("%.2f", costEstimate)}, " +
                     "carbon=${carbonEmissions.toInt()}g CO₂")
+
+            // Log successful charging session to analytics
+            analyticsManager.logCustomEvent(
+                eventName = "charging_session_completed",
+                params = mapOf(
+                    "start_level" to startLevel,
+                    "end_level" to endReading.batteryPercentage,
+                    "percentage_gained" to percentageGained,
+                    "duration_hours" to String.format("%.2f", durationHours).toDouble(),
+                    "energy_kwh" to String.format("%.4f", energyKwh).toDouble(),
+                    "cost_usd" to String.format("%.2f", costEstimate).toDouble(),
+                    "carbon_grams" to carbonEmissions.toInt(),
+                    "was_optimal" to wasOptimal,
+                    "carbon_intensity" to carbonIntensity.toInt()
+                )
+            )
+
+            // Set Crashlytics context with session results
+            crashlyticsManager.log("Charging session completed: ${percentageGained}% gained, ${String.format("%.2f", durationHours)}h, optimal=$wasOptimal")
+            crashlyticsManager.setBatteryPercentage(endReading.batteryPercentage)
+            crashlyticsManager.setIsCharging(false)
         } else {
             android.util.Log.e(TAG, "Failed to save charging session: ${saveResult.exceptionOrNull()?.message}")
+
+            // Log failure to analytics
+            analyticsManager.logError(
+                errorType = "charging_session_save_failed",
+                errorMessage = saveResult.exceptionOrNull()?.message ?: "Unknown error",
+                errorContext = TAG
+            )
+
+            // Log to Crashlytics
+            saveResult.exceptionOrNull()?.let {
+                crashlyticsManager.log("Failed to save charging session: ${it.message}")
+                crashlyticsManager.logException(it)
+            }
         }
 
         // Clear session state

@@ -60,10 +60,18 @@ class AggregateHealthMetricsUseCase(
             // Calculate daily metrics
             val metrics = calculateDailyMetrics(readings, healthScore)
 
-            // Save to Firestore
+            // Save to user's personal Firestore collection
             analyticsRepository.saveDailyHealthMetrics(
                 date = date.toString(), // "yyyy-MM-dd" format
                 metrics = metrics
+            )
+
+            // Contribute to anonymous global stats (if user has consented)
+            // The repository will check consent and only save if anonymousDataSharingEnabled is true
+            val anonymizedMetrics = anonymizeMetrics(metrics)
+            analyticsRepository.contributeToGlobalStats(
+                date = date.toString(),
+                stats = anonymizedMetrics
             )
 
             Result.success(Unit)
@@ -151,5 +159,23 @@ class AggregateHealthMetricsUseCase(
         }
 
         return totalMinutes
+    }
+
+    /**
+     * Anonymize metrics by removing identifying timestamps and keeping only aggregate statistics.
+     *
+     * This ensures privacy compliance for global stats contribution.
+     */
+    private fun anonymizeMetrics(metrics: Map<String, Any>): Map<String, Any> {
+        return metrics.filterKeys { key ->
+            // Remove potentially identifying fields like specific dates/timestamps
+            key != "date" && key != "updatedAt"
+        }.toMutableMap().apply {
+            // Add a generic timestamp for time-series aggregation (just the date, not user-specific time)
+            val originalDate = metrics["date"] as? Long
+            if (originalDate != null) {
+                put("aggregationDate", originalDate) // Keep date for daily aggregation
+            }
+        }
     }
 }

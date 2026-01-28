@@ -54,14 +54,23 @@ class RemoteConfigManager @Inject constructor(
             KEY_GRID_MONITORING_ENABLED to true,
             KEY_VPP_ENABLED to true,
             KEY_FEEDBACK_ENABLED to true,
+            KEY_DATA_EXPORT_ENABLED to true,
+            KEY_DATA_IMPORT_ENABLED to true,
+            KEY_CHARGING_SESSION_TRACKING_ENABLED to true,
+            KEY_ADVANCED_ANALYTICS_ENABLED to false,
+            KEY_BETA_FEATURES_ENABLED to false,
+            KEY_PUSH_NOTIFICATIONS_ENABLED to true,
 
             // App Configuration
             KEY_MIN_APP_VERSION to "2.0.0",
             KEY_FORCE_UPDATE_REQUIRED to false,
+            KEY_MAINTENANCE_MODE to false,
+            KEY_MAINTENANCE_MESSAGE to "Embit is undergoing maintenance. Please check back later.",
 
             // Sync Settings
             KEY_SYNC_INTERVAL_MINUTES to 60,
             KEY_MAX_SYNC_BATCH_SIZE to 100,
+            KEY_AUTO_SYNC_ENABLED to true,
 
             // Health Score Thresholds
             KEY_HEALTH_SCORE_GOOD to 80,
@@ -71,6 +80,11 @@ class RemoteConfigManager @Inject constructor(
             // Notification Thresholds
             KEY_LOW_BATTERY_THRESHOLD to 20,
             KEY_HIGH_TEMP_THRESHOLD to 45.0,
+            KEY_FULL_CHARGE_THRESHOLD to 95,
+
+            // Monitoring Settings
+            KEY_MONITORING_INTERVAL_MINUTES to 15,
+            KEY_MAX_READINGS_PER_DAY to 200,
 
             // A/B Testing
             KEY_EXPERIMENT_VARIANT to "control"
@@ -93,6 +107,30 @@ class RemoteConfigManager @Inject constructor(
         return remoteConfig.getBoolean(KEY_FEEDBACK_ENABLED)
     }
 
+    fun isDataExportEnabled(): Boolean {
+        return remoteConfig.getBoolean(KEY_DATA_EXPORT_ENABLED)
+    }
+
+    fun isDataImportEnabled(): Boolean {
+        return remoteConfig.getBoolean(KEY_DATA_IMPORT_ENABLED)
+    }
+
+    fun isChargingSessionTrackingEnabled(): Boolean {
+        return remoteConfig.getBoolean(KEY_CHARGING_SESSION_TRACKING_ENABLED)
+    }
+
+    fun isAdvancedAnalyticsEnabled(): Boolean {
+        return remoteConfig.getBoolean(KEY_ADVANCED_ANALYTICS_ENABLED)
+    }
+
+    fun isBetaFeaturesEnabled(): Boolean {
+        return remoteConfig.getBoolean(KEY_BETA_FEATURES_ENABLED)
+    }
+
+    fun isPushNotificationsEnabled(): Boolean {
+        return remoteConfig.getBoolean(KEY_PUSH_NOTIFICATIONS_ENABLED)
+    }
+
     // ========================================
     // App Configuration
     // ========================================
@@ -105,6 +143,14 @@ class RemoteConfigManager @Inject constructor(
         return remoteConfig.getBoolean(KEY_FORCE_UPDATE_REQUIRED)
     }
 
+    fun isMaintenanceMode(): Boolean {
+        return remoteConfig.getBoolean(KEY_MAINTENANCE_MODE)
+    }
+
+    fun getMaintenanceMessage(): String {
+        return remoteConfig.getString(KEY_MAINTENANCE_MESSAGE)
+    }
+
     // ========================================
     // Sync Settings
     // ========================================
@@ -115,6 +161,10 @@ class RemoteConfigManager @Inject constructor(
 
     fun getMaxSyncBatchSize(): Long {
         return remoteConfig.getLong(KEY_MAX_SYNC_BATCH_SIZE)
+    }
+
+    fun isAutoSyncEnabled(): Boolean {
+        return remoteConfig.getBoolean(KEY_AUTO_SYNC_ENABLED)
     }
 
     // ========================================
@@ -157,6 +207,22 @@ class RemoteConfigManager @Inject constructor(
         return remoteConfig.getDouble(KEY_HIGH_TEMP_THRESHOLD)
     }
 
+    fun getFullChargeThreshold(): Long {
+        return remoteConfig.getLong(KEY_FULL_CHARGE_THRESHOLD)
+    }
+
+    // ========================================
+    // Monitoring Settings
+    // ========================================
+
+    fun getMonitoringIntervalMinutes(): Long {
+        return remoteConfig.getLong(KEY_MONITORING_INTERVAL_MINUTES)
+    }
+
+    fun getMaxReadingsPerDay(): Long {
+        return remoteConfig.getLong(KEY_MAX_READINGS_PER_DAY)
+    }
+
     // ========================================
     // A/B Testing
     // ========================================
@@ -178,14 +244,23 @@ class RemoteConfigManager @Inject constructor(
         private const val KEY_GRID_MONITORING_ENABLED = "grid_monitoring_enabled"
         private const val KEY_VPP_ENABLED = "vpp_enabled"
         private const val KEY_FEEDBACK_ENABLED = "feedback_enabled"
+        private const val KEY_DATA_EXPORT_ENABLED = "data_export_enabled"
+        private const val KEY_DATA_IMPORT_ENABLED = "data_import_enabled"
+        private const val KEY_CHARGING_SESSION_TRACKING_ENABLED = "charging_session_tracking_enabled"
+        private const val KEY_ADVANCED_ANALYTICS_ENABLED = "advanced_analytics_enabled"
+        private const val KEY_BETA_FEATURES_ENABLED = "beta_features_enabled"
+        private const val KEY_PUSH_NOTIFICATIONS_ENABLED = "push_notifications_enabled"
 
         // App Configuration
         private const val KEY_MIN_APP_VERSION = "min_app_version"
         private const val KEY_FORCE_UPDATE_REQUIRED = "force_update_required"
+        private const val KEY_MAINTENANCE_MODE = "maintenance_mode"
+        private const val KEY_MAINTENANCE_MESSAGE = "maintenance_message"
 
         // Sync Settings
         private const val KEY_SYNC_INTERVAL_MINUTES = "sync_interval_minutes"
         private const val KEY_MAX_SYNC_BATCH_SIZE = "max_sync_batch_size"
+        private const val KEY_AUTO_SYNC_ENABLED = "auto_sync_enabled"
 
         // Health Score Thresholds
         private const val KEY_HEALTH_SCORE_GOOD = "health_score_good"
@@ -195,6 +270,11 @@ class RemoteConfigManager @Inject constructor(
         // Notification Thresholds
         private const val KEY_LOW_BATTERY_THRESHOLD = "low_battery_threshold"
         private const val KEY_HIGH_TEMP_THRESHOLD = "high_temp_threshold"
+        private const val KEY_FULL_CHARGE_THRESHOLD = "full_charge_threshold"
+
+        // Monitoring Settings
+        private const val KEY_MONITORING_INTERVAL_MINUTES = "monitoring_interval_minutes"
+        private const val KEY_MAX_READINGS_PER_DAY = "max_readings_per_day"
 
         // A/B Testing
         private const val KEY_EXPERIMENT_VARIANT = "experiment_variant"

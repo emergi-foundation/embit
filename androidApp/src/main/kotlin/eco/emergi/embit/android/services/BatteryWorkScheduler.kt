@@ -121,4 +121,56 @@ object BatteryWorkScheduler {
             it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING
         }
     }
+
+    /**
+     * Schedule daily health metrics aggregation (runs once per day)
+     */
+    fun scheduleHealthMetricsAggregation(context: Context) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED) // Need network to upload to Firestore
+            .setRequiresBatteryNotLow(false) // Run even on low battery
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<HealthMetricsAggregationWorker>(
+            repeatInterval = 1,
+            repeatIntervalTimeUnit = TimeUnit.DAYS,
+            flexTimeInterval = 2, // Allow 2 hours of flex time
+            flexTimeIntervalUnit = TimeUnit.HOURS
+        )
+            .setConstraints(constraints)
+            .addTag(HealthMetricsAggregationWorker.TAG)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                WorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            HealthMetricsAggregationWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+    }
+
+    /**
+     * Cancel daily health metrics aggregation
+     */
+    fun cancelHealthMetricsAggregation(context: Context) {
+        WorkManager.getInstance(context)
+            .cancelUniqueWork(HealthMetricsAggregationWorker.WORK_NAME)
+    }
+
+    /**
+     * Check if health metrics aggregation is scheduled
+     */
+    fun isHealthMetricsAggregationScheduled(context: Context): Boolean {
+        val workInfos = WorkManager.getInstance(context)
+            .getWorkInfosForUniqueWork(HealthMetricsAggregationWorker.WORK_NAME)
+            .get()
+
+        return workInfos.any {
+            it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING
+        }
+    }
 }

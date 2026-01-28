@@ -1,6 +1,7 @@
 package eco.emergi.embit.android
 
 import android.app.Application
+import android.os.Build
 import dagger.hilt.android.HiltAndroidApp
 import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.analytics.CrashlyticsManager
@@ -10,12 +11,19 @@ import eco.emergi.embit.android.services.BatteryWorkScheduler
 import eco.emergi.embit.android.services.LocationBasedGridManager
 import eco.emergi.embit.di.platformModule
 import eco.emergi.embit.di.sharedModule
+import eco.emergi.embit.domain.models.AuthState
+import eco.emergi.embit.domain.repositories.IAnalyticsRepository
+import eco.emergi.embit.domain.repositories.IUserPreferencesRepository
+import eco.emergi.embit.domain.usecases.auth.ObserveAuthStateUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 import javax.inject.Inject
@@ -71,6 +79,15 @@ class EmbitApplication : Application() {
 
         // Schedule periodic charging session tracking
         BatteryWorkScheduler.scheduleChargingSessionTracking(this)
+
+        // Schedule daily health metrics aggregation
+        BatteryWorkScheduler.scheduleHealthMetricsAggregation(this)
+
+        // Observe and apply analytics consent settings
+        observeAnalyticsConsent()
+
+        // Set user properties for existing authenticated users
+        setUserPropertiesForAuthenticatedUser()
     }
 
     private fun initializeFirebase() {
@@ -93,5 +110,93 @@ class EmbitApplication : Application() {
 
         // Analytics is automatically initialized by Firebase
         analyticsManager.setAnalyticsEnabled(true)
+    }
+
+    /**
+     * Observe analytics consent changes and apply settings to Firebase services.
+     */
+    private fun observeAnalyticsConsent() {
+        applicationScope.launch {
+            try {
+                // Get analytics repository from Koin
+                val analyticsRepository = GlobalContext.get().get<IAnalyticsRepository>()
+
+                // Observe consent changes
+                analyticsRepository.getAnalyticsConsent()
+                    .collectLatest { consent ->
+                        // Apply consent settings to Analytics
+                        analyticsManager.setAnalyticsEnabled(consent.analyticsEnabled)
+
+                        // Apply consent settings to Crashlytics
+                        crashlyticsManager.setCrashlyticsEnabled(consent.crashlyticsEnabled)
+
+                        // Log consent change (only if analytics is enabled)
+                        if (consent.analyticsEnabled) {
+                            analyticsManager.logCustomEvent(
+                                eventName = "analytics_consent_changed",
+                                params = mapOf(
+                                    "analytics_enabled" to consent.analyticsEnabled,
+                                    "crashlytics_enabled" to consent.crashlyticsEnabled,
+                                    "anonymous_sharing_enabled" to consent.anonymousDataSharingEnabled,
+                                    "personalized_recommendations_enabled" to consent.personalizedRecommendationsEnabled
+                                )
+                            )
+                        }
+
+                        crashlyticsManager.log("Analytics consent updated: $consent")
+                    }
+            } catch (e: Exception) {
+                // Silently fail if consent observation fails
+                crashlyticsManager.logException(e)
+            }
+        }
+    }
+
+    /**
+     * Set user properties for existing authenticated users on app startup.
+     * This ensures analytics has proper context for users who are already logged in.
+     */
+    private fun setUserPropertiesForAuthenticatedUser() {
+        applicationScope.launch {
+            try {
+                // Get use cases and repositories from Koin
+                val observeAuthStateUseCase = GlobalContext.get().get<ObserveAuthStateUseCase>()
+                val userPreferencesRepository = GlobalContext.get().get<IUserPreferencesRepository>()
+
+                // Get current auth state
+                val authState = observeAuthStateUseCase().first()
+
+                // If user is authenticated, set all user properties
+                if (authState is AuthState.Authenticated) {
+                    val user = authState.user
+
+                    // Set user ID
+                    analyticsManager.setUserId(user.uid)
+
+                    // Set auth provider (derive from email if possible)
+                    val authProvider = when {
+                        user.email?.contains("google") == true -> "google"
+                        user.email != null -> "email"
+                        else -> "unknown"
+                    }
+                    analyticsManager.setUserProperty("auth_provider", authProvider)
+
+                    // Set device info
+                    analyticsManager.setUserProperty("device_model", Build.MODEL)
+                    analyticsManager.setUserProperty("os_version", Build.VERSION.RELEASE)
+
+                    // Get and set grid region from user preferences
+                    userPreferencesRepository.getUserPreferences()
+                        .onSuccess { preferences ->
+                            analyticsManager.setUserProperty("grid_region", preferences.location)
+                        }
+
+                    crashlyticsManager.log("User properties set for authenticated user: ${user.uid}")
+                }
+            } catch (e: Exception) {
+                // Silently fail if user property setup fails
+                crashlyticsManager.logException(e)
+            }
+        }
     }
 }
