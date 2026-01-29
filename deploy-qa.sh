@@ -73,17 +73,70 @@ git push origin $TAG
 echo ""
 echo -e "${GREEN}✅ Tag pushed to GitHub${NC}"
 echo ""
-echo "🎉 Deployment initiated!"
+
+# Monitor the build
+echo -e "${YELLOW}⏳ Monitoring build...${NC}"
 echo ""
-echo "Next steps:"
-echo "1. Monitor GitHub Actions: https://github.com/YOUR_USERNAME/embit/actions"
-echo "2. Wait for build to complete (~3 minutes)"
-echo "3. QA team will receive Firebase App Distribution email"
-echo "4. Monitor Firebase Console for analytics/crashlytics"
+
+if ! scripts/wait-for-build.sh android-qa.yml "$TAG"; then
+    BUILD_EXIT_CODE=$?
+    echo ""
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${RED}❌ Deployment Failed${NC}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    case $BUILD_EXIT_CODE in
+        1)
+            echo "The build failed. Please check the logs and fix the issues."
+            ;;
+        20)
+            echo "The build timed out. It may still be running."
+            echo "Check status: gh run watch --repo ScheierVentures/embit"
+            ;;
+        10)
+            echo "Could not find the workflow run. Check GitHub Actions manually."
+            echo "Actions: https://github.com/ScheierVentures/embit/actions"
+            ;;
+        12)
+            echo "Network error while monitoring. Build may still be running."
+            echo "Check status: gh run list --repo ScheierVentures/embit"
+            ;;
+        30)
+            echo "The build was cancelled."
+            ;;
+        *)
+            echo "An unexpected error occurred (exit code: $BUILD_EXIT_CODE)"
+            ;;
+    esac
+
+    echo ""
+    echo "To rollback this deployment:"
+    echo "  git tag -d $TAG"
+    echo "  git push origin :refs/tags/$TAG"
+    echo "  git reset --hard HEAD~1"
+    echo ""
+
+    exit $BUILD_EXIT_CODE
+fi
+
+# Build succeeded!
 echo ""
-echo "Firebase Console Quick Links:"
-echo "- Analytics: https://console.firebase.google.com/project/YOUR_PROJECT/analytics/debugview"
-echo "- Crashlytics: https://console.firebase.google.com/project/YOUR_PROJECT/crashlytics"
-echo "- App Distribution: https://console.firebase.google.com/project/YOUR_PROJECT/appdistribution"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}🎉 QA Deployment Successful!${NC}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "${GREEN}🚀 Deployment complete!${NC}"
+echo -e "${GREEN}📦 Version:${NC} $NEW_VERSION-staging (build $NEW_CODE)"
+echo -e "${GREEN}🔗 Build:${NC} GitHub Actions completed successfully"
+echo ""
+echo -e "${GREEN}Next Steps:${NC}"
+echo "  1. ✅ APK uploaded to Firebase App Distribution"
+echo "  2. 📧 QA team will receive download email"
+echo "  3. 🧪 Test on staging environment"
+echo "  4. 📊 Monitor Firebase Console for analytics/crashlytics"
+echo ""
+echo -e "${GREEN}Firebase Console Links:${NC}"
+echo "  - App Distribution: https://console.firebase.google.com/project/embit-eco/appdistribution"
+echo "  - Crashlytics: https://console.firebase.google.com/project/embit-eco/crashlytics"
+echo "  - Analytics: https://console.firebase.google.com/project/embit-eco/analytics"
+echo ""

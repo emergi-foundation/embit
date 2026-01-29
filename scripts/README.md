@@ -45,6 +45,40 @@ This will automatically run tests before commits and pushes.
   - After updating hook logic
   - If hooks are accidentally deleted
 
+### `wait-for-build.sh`
+- **Purpose:** Monitor GitHub Actions workflow runs and wait for completion
+- **Usage:** `scripts/wait-for-build.sh <workflow-file> <tag-or-run-id>`
+- **Examples:**
+  ```bash
+  # Monitor build triggered by tag
+  scripts/wait-for-build.sh android-qa.yml qa-2.1.6
+
+  # Monitor specific run by ID
+  scripts/wait-for-build.sh android-qa.yml 21372921945
+
+  # Custom timeout (10 minutes)
+  TIMEOUT=600 scripts/wait-for-build.sh android-qa.yml qa-2.1.6
+  ```
+- **Features:**
+  - Polls GitHub Actions API for run status
+  - Shows real-time progress with spinner
+  - Returns proper exit codes based on build outcome
+  - Handles timeouts, errors, and cancellations
+  - Provides actionable error messages
+- **Exit Codes:**
+  - `0` - Build succeeded
+  - `1` - Build failed
+  - `10` - Workflow run not found
+  - `11` - API rate limit exceeded
+  - `12` - Network error (after retries)
+  - `20` - Timeout (build didn't complete in time)
+  - `30` - Build cancelled
+  - `126` - gh not authenticated
+  - `127` - gh not installed
+  - `130` - Interrupted by user (Ctrl+C)
+- **Used by:** Deployment scripts (`deploy-qa.sh`, etc.)
+- **Requirements:** GitHub CLI (`gh`) installed and authenticated
+
 ## Git Hooks
 
 Once installed, git hooks run automatically:
@@ -104,6 +138,26 @@ ls -la .git/hooks/pre-commit .git/hooks/pre-push
 ```bash
 git commit --no-verify
 git push --no-verify
+```
+
+### Build monitoring issues
+```bash
+# If gh is not installed
+brew install gh    # macOS
+apt install gh     # Ubuntu/Debian
+
+# If gh is not authenticated
+gh auth login
+
+# If build monitoring times out
+# Check build status manually
+gh run watch --repo ScheierVentures/embit
+
+# List recent workflow runs
+gh run list --repo ScheierVentures/embit --workflow android-qa.yml
+
+# View specific run by ID
+gh run view 21372921945 --repo ScheierVentures/embit
 ```
 
 ## Test Reports
