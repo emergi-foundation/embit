@@ -66,9 +66,13 @@ echo ""
 TAG="qa-$NEW_VERSION"
 echo -e "${YELLOW}🏷️  Creating tag: $TAG${NC}"
 
+# Use 'dev' remote by default (ScheierVentures/embit)
+# Can be overridden with DEPLOY_REMOTE env var
+REMOTE=${DEPLOY_REMOTE:-dev}
+
 git tag $TAG
-git push origin HEAD
-git push origin $TAG
+git push $REMOTE HEAD
+git push $REMOTE $TAG
 
 echo ""
 echo -e "${GREEN}✅ Tag pushed to GitHub${NC}"
