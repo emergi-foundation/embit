@@ -26,8 +26,8 @@ android {
         applicationId = "eco.emergi.embit"
         minSdk = 24
         targetSdk = 35
-        versionCode = 15
-        versionName = "2.2.2"
+        versionCode = 16
+        versionName = "2.2.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
