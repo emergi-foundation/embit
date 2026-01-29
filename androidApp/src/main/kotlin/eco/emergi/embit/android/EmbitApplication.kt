@@ -45,11 +45,10 @@ class EmbitApplication : Application() {
     @Inject
     lateinit var remoteConfigManager: RemoteConfigManager
 
-    @Inject
-    lateinit var appStateManager: AppStateManager
-
-    @Inject
-    lateinit var locationBasedGridManager: LocationBasedGridManager
+    // Note: AppStateManager and LocationBasedGridManager depend on Koin dependencies
+    // so they can't be injected by Hilt. We get them from Koin after initialization.
+    private lateinit var appStateManager: AppStateManager
+    private lateinit var locationBasedGridManager: LocationBasedGridManager
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -65,6 +64,19 @@ class EmbitApplication : Application() {
                 platformModule()
             )
         }
+
+        // Initialize managers that depend on Koin dependencies
+        // These can't be Hilt-injected because they need Koin use cases
+        appStateManager = AppStateManager(
+            context = this,
+            observeAuthStateUseCase = GlobalContext.get().get(),
+            bidirectionalSyncUseCase = GlobalContext.get().get()
+        )
+
+        locationBasedGridManager = LocationBasedGridManager(
+            context = this,
+            userPreferencesRepository = GlobalContext.get().get()
+        )
 
         // Initialize Firebase services
         initializeFirebase()
