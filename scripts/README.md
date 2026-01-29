@@ -160,6 +160,35 @@ gh run list --repo ScheierVentures/embit --workflow android-qa.yml
 gh run view 21372921945 --repo ScheierVentures/embit
 ```
 
+### Automatic workflow triggering not working
+
+If GitHub Actions workflows don't trigger automatically when pushing tags:
+
+1. **Verify default branch is set to `master`:**
+   ```bash
+   gh api repos/ScheierVentures/embit --jq '.default_branch'
+   # Should output: master
+   ```
+
+2. **Ensure workflow file exists on default branch:**
+   - GitHub requires workflow files to be present on the default branch
+   - Even if the tag points to a commit with the workflow file, it won't trigger unless the workflow is also on the default branch
+   - Merge workflow changes to `master` before testing automatic triggers
+
+3. **Check workflow syntax:**
+   ```bash
+   # View current workflow configuration
+   gh api repos/ScheierVentures/embit/contents/.github/workflows/android-qa.yml \
+     --jq '.content' | base64 -d
+   ```
+
+4. **Manually trigger workflow as workaround:**
+   ```bash
+   gh workflow run android-qa.yml \
+     --repo ScheierVentures/embit \
+     --ref feature/your-branch-name
+   ```
+
 ## Test Reports
 
 After running tests, view detailed reports:

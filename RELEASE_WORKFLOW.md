@@ -69,55 +69,88 @@ adb shell am start -n eco.emergi.embit/.MainActivity
 
 When you're ready for QA testing:
 
-### Step 1: Ensure Changes are Committed
+### Automated Deployment (Recommended)
+
+Use the automated deployment script for a streamlined QA release:
+
+```bash
+./deploy-qa.sh
+```
+
+The script will:
+1. Prompt for new version number (e.g., 2.1.0) and version code
+2. Update `androidApp/build.gradle.kts` with the new version
+3. Commit the version bump with message: `chore: bump version to X.Y.Z`
+4. Create and push a `qa-X.Y.Z` tag
+5. **Automatically trigger** GitHub Actions workflow
+6. Monitor the build progress in real-time
+7. Report build success/failure
+
+**What happens automatically:**
+- GitHub Actions workflow `android-qa.yml` is triggered on tag push
+- Builds `stagingDebug` flavor (faster build, easier debugging)
+- APK uploaded as GitHub artifact (90-day retention)
+- APK distributed to QA team via Firebase App Distribution
+- Build monitoring shows live progress and completion status
+
+### Manual Deployment (Alternative)
+
+If you prefer manual control:
+
+#### Step 1: Ensure Changes are Committed
 
 ```bash
 git status  # Make sure everything is committed
 git log --oneline -5  # Review recent commits
 ```
 
-### Step 2: Create QA Tag
+#### Step 2: Update Version and Create QA Tag
 
 ```bash
-git tag qa-2.1.0  # Use semantic versioning
-git push dev qa-2.1.0
+# Update version in androidApp/build.gradle.kts
+# versionCode = X
+# versionName = "X.Y.Z"
+
+git add androidApp/build.gradle.kts
+git commit -m "chore: bump version to X.Y.Z"
+git tag qa-X.Y.Z
+git push dev HEAD
+git push dev qa-X.Y.Z
 ```
 
 **What happens:**
-1. GitHub Actions workflow `android-qa.yml` is triggered
-2. Builds `stagingRelease` flavor
+1. GitHub Actions workflow `android-qa.yml` is automatically triggered on tag push
+2. Builds `stagingDebug` flavor
 3. APK uploaded as GitHub artifact
-4. (After Firebase setup) Distributed to QA team via Firebase
+4. Distributed to QA team via Firebase App Distribution
 
-### Step 3: Monitor Build
+#### Step 3: Monitor Build
 
 ```bash
-./check-build.sh
+scripts/wait-for-build.sh android-qa.yml qa-X.Y.Z
 # or
-export PATH="$HOME/.local/bin:$PATH"
 gh run watch --repo ScheierVentures/embit
 ```
 
-### Step 4: QA Team Tests
+### QA Team Testing
 
-- QA team receives email from Firebase
+- QA team receives email from Firebase App Distribution
 - Downloads and installs APK
 - Tests on staging environment
 - Reports bugs/issues
 
-### Step 5: Fix and Iterate
+### Fix and Iterate
 
 If issues are found:
 
 ```bash
-# Fix the issues
+# Fix the issues, commit, and push
 git add .
 git commit -m "Fix: [description]"
-git push dev master
+git push dev HEAD
 
-# Create new QA tag
-git tag qa-2.1.1
-git push dev qa-2.1.1
+# Run automated deployment with new version
+./deploy-qa.sh  # Enter new version (e.g., 2.1.1)
 ```
 
 ## 3. Production Release Workflow
