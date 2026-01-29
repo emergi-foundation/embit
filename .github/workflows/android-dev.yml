@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Skip dev builds for QA deployments (version bump commits)
+    if: "!contains(github.event.head_commit.message, 'chore: bump version')"
 
     steps:
       - name: Checkout code
