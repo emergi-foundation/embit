@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="eco.emergi.embit.android.services.LocationBasedGridManagerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-01-27T03:41:10" hostname="muir" time="1.874">
+<testsuite name="eco.emergi.embit.android.services.LocationBasedGridManagerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-01-29T04:32:09" hostname="muir" time="2.134">
   <properties/>
-  <testcase name="test New England states map to ISONE" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="1.26"/>
-  <testcase name="test all grid codes use WattTime format not friendly names" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.023"/>
-  <testcase name="test New York maps to NYISO" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.086"/>
-  <testcase name="test unknown grid code returns input as-is" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.144"/>
-  <testcase name="test Texas maps to ERCOT" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.032"/>
-  <testcase name="test Southwest states map to SPP" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.021"/>
-  <testcase name="test Western states map to BPAT" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.119"/>
-  <testcase name="test Southeast states map to PACE" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.04"/>
-  <testcase name="test California maps to CAISO_NORTH" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.04"/>
-  <testcase name="test Mid-Atlantic states map to PJM" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.035"/>
-  <testcase name="test Florida maps to FPL" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.046"/>
-  <testcase name="test Midwest states map to MISO" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.027"/>
+  <testcase name="test New England states map to ISONE" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="1.397"/>
+  <testcase name="test all grid codes use WattTime format not friendly names" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.044"/>
+  <testcase name="test New York maps to NYISO" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.105"/>
+  <testcase name="test unknown grid code returns input as-is" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.186"/>
+  <testcase name="test Texas maps to ERCOT" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.029"/>
+  <testcase name="test Southwest states map to SPP" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.028"/>
+  <testcase name="test Western states map to BPAT" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.023"/>
+  <testcase name="test Southeast states map to PACE" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.176"/>
+  <testcase name="test California maps to CAISO_NORTH" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.038"/>
+  <testcase name="test Mid-Atlantic states map to PJM" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.056"/>
+  <testcase name="test Florida maps to FPL" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.026"/>
+  <testcase name="test Midwest states map to MISO" classname="eco.emergi.embit.android.services.LocationBasedGridManagerTest" time="0.023"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
