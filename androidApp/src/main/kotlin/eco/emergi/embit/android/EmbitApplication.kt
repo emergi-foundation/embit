@@ -3,6 +3,7 @@ package eco.emergi.embit.android
 import android.app.Application
 import android.os.Build
 import dagger.hilt.android.HiltAndroidApp
+import eco.emergi.embit.android.BuildConfig
 import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.analytics.CrashlyticsManager
 import eco.emergi.embit.android.analytics.RemoteConfigManager
