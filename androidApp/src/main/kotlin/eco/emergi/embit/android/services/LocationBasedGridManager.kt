@@ -28,6 +28,10 @@ import javax.inject.Singleton
  * - Northeast → NYISO, ISO-NE
  * - Midwest → MISO
  * - etc.
+ *
+ * WARNING: This class depends on Koin repository (IUserPreferencesRepository).
+ * Do NOT inject this via Hilt in EmbitApplication - it will crash at startup!
+ * Instead, manually instantiate it after Koin initialization using GlobalContext.get().
  */
 @Singleton
 class LocationBasedGridManager @Inject constructor(

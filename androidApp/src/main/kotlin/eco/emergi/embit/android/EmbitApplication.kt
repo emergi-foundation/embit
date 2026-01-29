@@ -32,10 +32,26 @@ import javax.inject.Inject
 /**
  * Application class for Embit.
  * Initializes Hilt for Android-specific DI and Koin for shared dependencies.
+ *
+ * IMPORTANT - Dependency Injection Architecture:
+ * - Hilt: Used for Android-specific dependencies (Firebase, Android services)
+ * - Koin: Used for shared/multiplatform dependencies (use cases, repositories)
+ *
+ * WARNING: Do NOT @Inject classes that have Koin dependencies in their constructors!
+ * Hilt cannot resolve Koin dependencies, which will cause runtime crashes.
+ * Instead, manually instantiate such classes after startKoin() completes.
+ *
+ * Safe to @Inject (Android-only dependencies):
+ * - AnalyticsManager, CrashlyticsManager, RemoteConfigManager
+ *
+ * Must instantiate manually (depend on Koin):
+ * - AppStateManager (needs ObserveAuthStateUseCase, BidirectionalSyncUseCase)
+ * - LocationBasedGridManager (needs IUserPreferencesRepository)
  */
 @HiltAndroidApp
 class EmbitApplication : Application() {
 
+    // Safe: Hilt-provided, Android-only dependencies
     @Inject
     lateinit var analyticsManager: AnalyticsManager
 
@@ -45,8 +61,8 @@ class EmbitApplication : Application() {
     @Inject
     lateinit var remoteConfigManager: RemoteConfigManager
 
-    // Note: AppStateManager and LocationBasedGridManager depend on Koin dependencies
-    // so they can't be injected by Hilt. We get them from Koin after initialization.
+    // Manual initialization required: These classes depend on Koin dependencies
+    // NEVER add @Inject to these - it will crash the app at startup!
     private lateinit var appStateManager: AppStateManager
     private lateinit var locationBasedGridManager: LocationBasedGridManager
 

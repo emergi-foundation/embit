@@ -23,6 +23,10 @@ import javax.inject.Singleton
  * - Persistent authentication state monitoring
  * - Background data synchronization
  * - Location-based grid configuration updates
+ *
+ * WARNING: This class depends on Koin use cases (ObserveAuthStateUseCase, BidirectionalSyncUseCase).
+ * Do NOT inject this via Hilt in EmbitApplication - it will crash at startup!
+ * Instead, manually instantiate it after Koin initialization using GlobalContext.get().
  */
 @Singleton
 class AppStateManager @Inject constructor(
