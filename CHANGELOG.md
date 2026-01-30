@@ -5,6 +5,53 @@ All notable changes to the Embit project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2026-01-29
+
+### Added
+- Firebase Analytics integration with 15+ event types (battery, health, charging, navigation, auth, feedback)
+- Firebase Crashlytics for crash reporting and non-fatal error tracking
+- Firebase Remote Config for feature flags and dynamic configuration
+- In-app feedback system with screenshot attachment support
+- Daily battery health metrics aggregation worker
+- Google Sign-In integration (One-Tap Sign-In)
+- Location-based grid region monitoring
+- Deployment automation with GitHub Actions workflows
+- Firebase App Distribution integration for QA releases
+- Comprehensive documentation (10+ guides)
+  - ANALYTICS.md (625 lines) - Complete analytics implementation guide
+  - DEPLOYMENT_GUIDE.md (573 lines) - Step-by-step deployment instructions
+  - FIREBASE_VERIFICATION_GUIDE.md - Firebase integration verification
+  - GOOGLE_SIGN_IN_SETUP.md - Google authentication setup
+  - PRE_DEPLOYMENT_CHECKLIST.md - Pre-release validation checklist
+  - TESTING.md - Testing framework and strategies
+
+### Fixed
+- Hilt/Koin dependency conflict causing app crash on startup (v2.2.3)
+  - Added comprehensive DI boundary documentation
+  - Documented safe vs unsafe injection patterns
+- Missing BuildConfig import in analytics implementation (v2.2.2)
+- Nullable battery reading crash in charging session tracking
+- GitHub Actions workflow conditional for QA deployments
+
+### Changed
+- Simplified GitHub Actions workflows (removed unnecessary triggers)
+- Enhanced deployment automation with version extraction
+- Improved Firebase analytics consent flow
+- Updated EmbitApplication with proper DI initialization order
+
+### Documentation
+- Added CLAUDE.md updates for Hilt/Koin DI architecture
+- Created FIREBASE_IMPLEMENTATION_SUMMARY.md (407 lines)
+- Added FIREBASE_APP_DISTRIBUTION_TROUBLESHOOTING.md
+- Created FIREBASE_SHA1_FINGERPRINT.md setup guide
+- Added VERIFICATION_CHECKLIST.md for post-deployment validation
+
+### Infrastructure
+- GitHub Actions: Android Dev Build workflow (auto-build on master)
+- GitHub Actions: Android QA Release workflow (triggered by qa-* tags)
+- Firebase App Distribution for QA team distribution
+- Pre-push hooks for comprehensive test validation
+
 ## [2.0.0] - 2025-10-22
 
 ### Complete Rewrite - Kotlin Multiplatform
