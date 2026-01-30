@@ -5,13 +5,17 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import eco.emergi.embit.data.api.GridDataRepository
+import eco.emergi.embit.data.firebase.FirebaseAnalyticsRepository
 import eco.emergi.embit.data.firebase.FirebaseAuthRepository
+import eco.emergi.embit.data.firebase.FirebaseFeedbackRepository
 import eco.emergi.embit.data.firebase.FirebaseUserPreferencesRepository
 import eco.emergi.embit.data.firebase.FirestoreSyncRepository
 import eco.emergi.embit.data.local.DatabaseDriverFactory
 import eco.emergi.embit.data.repositories.VppRepositoryImpl
 import eco.emergi.embit.domain.repositories.BatteryMonitorServiceFactory
+import eco.emergi.embit.domain.repositories.IAnalyticsRepository
 import eco.emergi.embit.domain.repositories.IAuthRepository
+import eco.emergi.embit.domain.repositories.IFeedbackRepository
 import eco.emergi.embit.domain.repositories.IGridDataRepository
 import eco.emergi.embit.domain.repositories.ISyncRepository
 import eco.emergi.embit.domain.repositories.IUserPreferencesRepository
@@ -55,6 +59,22 @@ actual fun platformModule(): Module = module {
     single<ISyncRepository> {
         FirestoreSyncRepository(
             batteryRepository = get()
+        )
+    }
+
+    // Feedback Repository (Firestore)
+    single<IFeedbackRepository> {
+        FirebaseFeedbackRepository(
+            firestore = Firebase.firestore,
+            auth = Firebase.auth
+        )
+    }
+
+    // Analytics Repository (Firestore)
+    single<IAnalyticsRepository> {
+        FirebaseAnalyticsRepository(
+            firestore = Firebase.firestore,
+            auth = Firebase.auth
         )
     }
 

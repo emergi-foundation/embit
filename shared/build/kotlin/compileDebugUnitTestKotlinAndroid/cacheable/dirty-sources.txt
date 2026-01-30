@@ -1,0 +1,9 @@
+/home/ess/Documents/apps/embit/shared/src/androidUnitTest/kotlin/eco/emergi/embit/domain/usecases/grid/ObserveGridStatusUseCaseTest.kt
+/home/ess/Documents/apps/embit/shared/src/commonTest/kotlin/eco/emergi/embit/domain/usecases/GenerateChargingRecommendationsUseCaseTest.kt
+/home/ess/Documents/apps/embit/shared/src/androidUnitTest/kotlin/eco/emergi/embit/domain/usecases/grid/GetChargingRecommendationUseCaseTest.kt
+/home/ess/Documents/apps/embit/shared/src/commonTest/kotlin/eco/emergi/embit/domain/usecases/PredictBatteryLifeUseCaseTest.kt
+/home/ess/Documents/apps/embit/shared/src/commonTest/kotlin/eco/emergi/embit/domain/usecases/vpp/ParticipateInDREventUseCaseTest.kt
+/home/ess/Documents/apps/embit/shared/src/androidUnitTest/kotlin/eco/emergi/embit/domain/usecases/sync/SyncBatteryDataUseCaseTest.kt
+/home/ess/Documents/apps/embit/shared/src/commonTest/kotlin/eco/emergi/embit/domain/models/UserPreferencesTest.kt
+/home/ess/Documents/apps/embit/shared/src/androidUnitTest/kotlin/eco/emergi/embit/domain/usecases/auth/SignInUseCaseTest.kt
+/home/ess/Documents/apps/embit/shared/src/commonTest/kotlin/eco/emergi/embit/domain/usecases/AnalyzeBatteryHealthUseCaseTest.kt

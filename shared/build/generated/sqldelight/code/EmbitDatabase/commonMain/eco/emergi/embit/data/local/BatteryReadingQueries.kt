@@ -9,6 +9,7 @@ import kotlin.Any
 import kotlin.Double
 import kotlin.Long
 import kotlin.String
+import kotlin.collections.Collection
 
 public class BatteryReadingQueries(
   driver: SqlDriver,
@@ -22,9 +23,10 @@ public class BatteryReadingQueries(
     batteryPercentage: Long,
     batteryState: String,
     chargingType: String?,
+    syncedAt: Long?,
   ) -> T): Query<T> = Query(209_701_580, arrayOf("BatteryReading"), driver, "BatteryReading.sq",
       "getLatestReading", """
-  |SELECT BatteryReading.id, BatteryReading.timestamp, BatteryReading.voltageMillivolts, BatteryReading.amperageMicroamps, BatteryReading.temperatureCelsius, BatteryReading.batteryPercentage, BatteryReading.batteryState, BatteryReading.chargingType FROM BatteryReading
+  |SELECT BatteryReading.id, BatteryReading.timestamp, BatteryReading.voltageMillivolts, BatteryReading.amperageMicroamps, BatteryReading.temperatureCelsius, BatteryReading.batteryPercentage, BatteryReading.batteryState, BatteryReading.chargingType, BatteryReading.syncedAt FROM BatteryReading
   |ORDER BY timestamp DESC
   |LIMIT 1
   """.trimMargin()) { cursor ->
@@ -36,13 +38,14 @@ public class BatteryReadingQueries(
       cursor.getDouble(4),
       cursor.getLong(5)!!,
       cursor.getString(6)!!,
-      cursor.getString(7)
+      cursor.getString(7),
+      cursor.getLong(8)
     )
   }
 
   public fun getLatestReading(): Query<BatteryReading> = getLatestReading { id, timestamp,
       voltageMillivolts, amperageMicroamps, temperatureCelsius, batteryPercentage, batteryState,
-      chargingType ->
+      chargingType, syncedAt ->
     BatteryReading(
       id,
       timestamp,
@@ -51,7 +54,8 @@ public class BatteryReadingQueries(
       temperatureCelsius,
       batteryPercentage,
       batteryState,
-      chargingType
+      chargingType,
+      syncedAt
     )
   }
 
@@ -68,6 +72,7 @@ public class BatteryReadingQueries(
       batteryPercentage: Long,
       batteryState: String,
       chargingType: String?,
+      syncedAt: Long?,
     ) -> T,
   ): Query<T> = GetReadingsInRangeQuery(startTime, endTime, limit) { cursor ->
     mapper(
@@ -78,7 +83,8 @@ public class BatteryReadingQueries(
       cursor.getDouble(4),
       cursor.getLong(5)!!,
       cursor.getString(6)!!,
-      cursor.getString(7)
+      cursor.getString(7),
+      cursor.getLong(8)
     )
   }
 
@@ -88,7 +94,7 @@ public class BatteryReadingQueries(
     limit: Long,
   ): Query<BatteryReading> = getReadingsInRange(startTime, endTime, limit) { id, timestamp,
       voltageMillivolts, amperageMicroamps, temperatureCelsius, batteryPercentage, batteryState,
-      chargingType ->
+      chargingType, syncedAt ->
     BatteryReading(
       id,
       timestamp,
@@ -97,7 +103,8 @@ public class BatteryReadingQueries(
       temperatureCelsius,
       batteryPercentage,
       batteryState,
-      chargingType
+      chargingType,
+      syncedAt
     )
   }
 
@@ -113,6 +120,7 @@ public class BatteryReadingQueries(
       batteryPercentage: Long,
       batteryState: String,
       chargingType: String?,
+      syncedAt: Long?,
     ) -> T,
   ): Query<T> = GetAllReadingsInRangeQuery(startTime, endTime) { cursor ->
     mapper(
@@ -123,13 +131,15 @@ public class BatteryReadingQueries(
       cursor.getDouble(4),
       cursor.getLong(5)!!,
       cursor.getString(6)!!,
-      cursor.getString(7)
+      cursor.getString(7),
+      cursor.getLong(8)
     )
   }
 
   public fun getAllReadingsInRange(startTime: Long, endTime: Long): Query<BatteryReading> =
       getAllReadingsInRange(startTime, endTime) { id, timestamp, voltageMillivolts,
-      amperageMicroamps, temperatureCelsius, batteryPercentage, batteryState, chargingType ->
+      amperageMicroamps, temperatureCelsius, batteryPercentage, batteryState, chargingType,
+      syncedAt ->
     BatteryReading(
       id,
       timestamp,
@@ -138,7 +148,8 @@ public class BatteryReadingQueries(
       temperatureCelsius,
       batteryPercentage,
       batteryState,
-      chargingType
+      chargingType,
+      syncedAt
     )
   }
 
@@ -302,6 +313,54 @@ public class BatteryReadingQueries(
     )
   }
 
+  public fun <T : Any> getUnsyncedReadings(limit: Long, mapper: (
+    id: Long,
+    timestamp: Long,
+    voltageMillivolts: Long,
+    amperageMicroamps: Long,
+    temperatureCelsius: Double?,
+    batteryPercentage: Long,
+    batteryState: String,
+    chargingType: String?,
+    syncedAt: Long?,
+  ) -> T): Query<T> = GetUnsyncedReadingsQuery(limit) { cursor ->
+    mapper(
+      cursor.getLong(0)!!,
+      cursor.getLong(1)!!,
+      cursor.getLong(2)!!,
+      cursor.getLong(3)!!,
+      cursor.getDouble(4),
+      cursor.getLong(5)!!,
+      cursor.getString(6)!!,
+      cursor.getString(7),
+      cursor.getLong(8)
+    )
+  }
+
+  public fun getUnsyncedReadings(limit: Long): Query<BatteryReading> = getUnsyncedReadings(limit) {
+      id, timestamp, voltageMillivolts, amperageMicroamps, temperatureCelsius, batteryPercentage,
+      batteryState, chargingType, syncedAt ->
+    BatteryReading(
+      id,
+      timestamp,
+      voltageMillivolts,
+      amperageMicroamps,
+      temperatureCelsius,
+      batteryPercentage,
+      batteryState,
+      chargingType,
+      syncedAt
+    )
+  }
+
+  public fun getUnsyncedReadingsCount(): Query<Long> = Query(-110_492_900,
+      arrayOf("BatteryReading"), driver, "BatteryReading.sq", "getUnsyncedReadingsCount", """
+  |SELECT COUNT(*) FROM BatteryReading
+  |WHERE syncedAt IS NULL
+  """.trimMargin()) { cursor ->
+    cursor.getLong(0)!!
+  }
+
   public fun insertReading(
     timestamp: Long,
     voltageMillivolts: Long,
@@ -310,6 +369,7 @@ public class BatteryReadingQueries(
     batteryPercentage: Long,
     batteryState: String,
     chargingType: String?,
+    syncedAt: Long?,
   ) {
     driver.execute(-1_936_679_626, """
         |INSERT INTO BatteryReading (
@@ -319,9 +379,10 @@ public class BatteryReadingQueries(
         |    temperatureCelsius,
         |    batteryPercentage,
         |    batteryState,
-        |    chargingType
-        |) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """.trimMargin(), 7) {
+        |    chargingType,
+        |    syncedAt
+        |) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """.trimMargin(), 8) {
           bindLong(0, timestamp)
           bindLong(1, voltageMillivolts)
           bindLong(2, amperageMicroamps)
@@ -329,6 +390,7 @@ public class BatteryReadingQueries(
           bindLong(4, batteryPercentage)
           bindString(5, batteryState)
           bindString(6, chargingType)
+          bindLong(7, syncedAt)
         }
     notifyQueries(-1_936_679_626) { emit ->
       emit("BatteryReading")
@@ -354,6 +416,23 @@ public class BatteryReadingQueries(
     }
   }
 
+  public fun markReadingsAsSynced(syncTimestamp: Long?, readingIds: Collection<Long>) {
+    val readingIdsIndexes = createArguments(count = readingIds.size)
+    driver.execute(null, """
+        |UPDATE BatteryReading
+        |SET syncedAt = ?
+        |WHERE id IN $readingIdsIndexes
+        """.trimMargin(), 1 + readingIds.size) {
+          bindLong(0, syncTimestamp)
+          readingIds.forEachIndexed { index, readingIds_ ->
+            bindLong(index + 1, readingIds_)
+          }
+        }
+    notifyQueries(1_323_368_381) { emit ->
+      emit("BatteryReading")
+    }
+  }
+
   private inner class GetReadingsInRangeQuery<out T : Any>(
     public val startTime: Long,
     public val endTime: Long,
@@ -370,7 +449,7 @@ public class BatteryReadingQueries(
 
     override fun <R> execute(mapper: (SqlCursor) -> QueryResult<R>): QueryResult<R> =
         driver.executeQuery(979_354_040, """
-    |SELECT BatteryReading.id, BatteryReading.timestamp, BatteryReading.voltageMillivolts, BatteryReading.amperageMicroamps, BatteryReading.temperatureCelsius, BatteryReading.batteryPercentage, BatteryReading.batteryState, BatteryReading.chargingType FROM BatteryReading
+    |SELECT BatteryReading.id, BatteryReading.timestamp, BatteryReading.voltageMillivolts, BatteryReading.amperageMicroamps, BatteryReading.temperatureCelsius, BatteryReading.batteryPercentage, BatteryReading.batteryState, BatteryReading.chargingType, BatteryReading.syncedAt FROM BatteryReading
     |WHERE timestamp BETWEEN ? AND ?
     |ORDER BY timestamp DESC
     |LIMIT ?
@@ -398,7 +477,7 @@ public class BatteryReadingQueries(
 
     override fun <R> execute(mapper: (SqlCursor) -> QueryResult<R>): QueryResult<R> =
         driver.executeQuery(-1_241_419_671, """
-    |SELECT BatteryReading.id, BatteryReading.timestamp, BatteryReading.voltageMillivolts, BatteryReading.amperageMicroamps, BatteryReading.temperatureCelsius, BatteryReading.batteryPercentage, BatteryReading.batteryState, BatteryReading.chargingType FROM BatteryReading
+    |SELECT BatteryReading.id, BatteryReading.timestamp, BatteryReading.voltageMillivolts, BatteryReading.amperageMicroamps, BatteryReading.temperatureCelsius, BatteryReading.batteryPercentage, BatteryReading.batteryState, BatteryReading.chargingType, BatteryReading.syncedAt FROM BatteryReading
     |WHERE timestamp BETWEEN ? AND ?
     |ORDER BY timestamp ASC
     """.trimMargin(), mapper, 2) {
@@ -604,5 +683,30 @@ public class BatteryReadingQueries(
     }
 
     override fun toString(): String = "BatteryReading.sq:getStateDurations"
+  }
+
+  private inner class GetUnsyncedReadingsQuery<out T : Any>(
+    public val limit: Long,
+    mapper: (SqlCursor) -> T,
+  ) : Query<T>(mapper) {
+    override fun addListener(listener: Query.Listener) {
+      driver.addListener("BatteryReading", listener = listener)
+    }
+
+    override fun removeListener(listener: Query.Listener) {
+      driver.removeListener("BatteryReading", listener = listener)
+    }
+
+    override fun <R> execute(mapper: (SqlCursor) -> QueryResult<R>): QueryResult<R> =
+        driver.executeQuery(1_576_990_131, """
+    |SELECT BatteryReading.id, BatteryReading.timestamp, BatteryReading.voltageMillivolts, BatteryReading.amperageMicroamps, BatteryReading.temperatureCelsius, BatteryReading.batteryPercentage, BatteryReading.batteryState, BatteryReading.chargingType, BatteryReading.syncedAt FROM BatteryReading
+    |WHERE syncedAt IS NULL
+    |ORDER BY timestamp ASC
+    |LIMIT ?
+    """.trimMargin(), mapper, 1) {
+      bindLong(0, limit)
+    }
+
+    override fun toString(): String = "BatteryReading.sq:getUnsyncedReadings"
   }
 }

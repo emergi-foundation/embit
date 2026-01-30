@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
  * @property energyProductType Type of energy product selected by user
  * @property notificationsEnabled Whether to show charging recommendations
  * @property optimalChargingEnabled Whether to enable smart charging features
+ * @property vppParticipationEnabled Whether to participate in Virtual Power Plant demand response
  * @property theme App theme preference ("light", "dark", "system")
  * @property updatedAt Timestamp of last update (milliseconds since epoch)
  */
@@ -21,6 +22,7 @@ data class UserPreferences(
     val energyProductType: EnergyProductType = EnergyProductType.STANDARD_GRID,
     val notificationsEnabled: Boolean = true,
     val optimalChargingEnabled: Boolean = true,
+    val vppParticipationEnabled: Boolean = true,  // Default ON for grid participation
     val theme: String = "system",
     val updatedAt: Long = System.currentTimeMillis()
 ) {
@@ -34,6 +36,7 @@ data class UserPreferences(
             "energyProductType" to energyProductType.name,
             "notificationsEnabled" to notificationsEnabled,
             "optimalChargingEnabled" to optimalChargingEnabled,
+            "vppParticipationEnabled" to vppParticipationEnabled,
             "theme" to theme,
             "updatedAt" to updatedAt
         )
@@ -61,6 +64,7 @@ data class UserPreferences(
                 },
                 notificationsEnabled = data["notificationsEnabled"] as? Boolean ?: true,
                 optimalChargingEnabled = data["optimalChargingEnabled"] as? Boolean ?: true,
+                vppParticipationEnabled = data["vppParticipationEnabled"] as? Boolean ?: true,
                 theme = data["theme"] as? String ?: "system",
                 updatedAt = (data["updatedAt"] as? Long) ?: System.currentTimeMillis()
             )

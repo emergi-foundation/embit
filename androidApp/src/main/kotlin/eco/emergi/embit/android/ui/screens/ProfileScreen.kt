@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.usecases.auth.*
 import eco.emergi.embit.presentation.AuthUiState
@@ -32,6 +33,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    analyticsManager: AnalyticsManager,
     onNavigateBack: () -> Unit,
     onSignOut: () -> Unit
 ) {
@@ -44,6 +46,9 @@ fun ProfileScreen(
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+    val signInWithGoogleUseCase: SignInWithGoogleUseCase = koinInject()
+    val isNewUserUseCase: IsNewUserUseCase = koinInject()
+    val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository = koinInject()
 
     // Create ViewModel
     val viewModel = remember(scope) {
@@ -54,6 +59,9 @@ fun ProfileScreen(
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,
+            signInWithGoogleUseCase = signInWithGoogleUseCase,
+            isNewUserUseCase = isNewUserUseCase,
+            userPreferencesRepository = userPreferencesRepository,
             viewModelScope = scope
         )
     }
@@ -69,6 +77,10 @@ fun ProfileScreen(
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Unauthenticated -> {
+                // Log successful sign out
+                analyticsManager.logLogout()
+                // Clear user ID in analytics
+                analyticsManager.setUserId(null)
                 onSignOut()
             }
             else -> {}

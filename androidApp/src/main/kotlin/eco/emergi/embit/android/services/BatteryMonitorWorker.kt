@@ -6,6 +6,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import eco.emergi.embit.android.analytics.AnalyticsManager
+import eco.emergi.embit.android.analytics.CrashlyticsManager
 import eco.emergi.embit.domain.usecases.MonitorBatteryUseCase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
@@ -21,18 +23,23 @@ class BatteryMonitorWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val monitorBatteryUseCase: MonitorBatteryUseCase,
-    private val notificationHelper: BatteryNotificationHelper
+    private val notificationHelper: BatteryNotificationHelper,
+    private val analyticsManager: AnalyticsManager,
+    private val crashlyticsManager: CrashlyticsManager
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
         return try {
             // Check if monitoring is supported
             if (!monitorBatteryUseCase.isSupported()) {
+                crashlyticsManager.log("Battery monitoring not supported")
                 return Result.failure()
             }
 
             // Ensure permissions (should already be granted)
             if (!monitorBatteryUseCase.ensurePermissions()) {
+                crashlyticsManager.log("Battery monitoring permissions not granted")
+                analyticsManager.logPermissionDenied("BATTERY_STATS")
                 return Result.failure()
             }
 
@@ -43,14 +50,36 @@ class BatteryMonitorWorker @AssistedInject constructor(
             }
 
             if (reading != null) {
+                // Update Crashlytics context with current battery state
+                crashlyticsManager.setBatteryPercentage(reading.batteryPercentage)
+                crashlyticsManager.setIsCharging(reading.isCharging)
+                reading.temperatureCelsius?.let { temp ->
+                    crashlyticsManager.setBatteryTemperature(temp)
+                }
+
+                // Log battery reading analytics
+                analyticsManager.logBatteryReading(
+                    percentage = reading.batteryPercentage,
+                    temperature = reading.temperatureCelsius ?: 0f,
+                    isCharging = reading.isCharging
+                )
+
                 // Check for notable battery events and show notification if needed
                 checkAndNotify(reading)
                 Result.success()
             } else {
+                crashlyticsManager.log("Failed to collect battery reading (timeout)")
                 Result.retry()
             }
         } catch (e: Exception) {
-            // Log error but don't fail permanently
+            // Log error to Crashlytics
+            crashlyticsManager.logException(e)
+            analyticsManager.logError(
+                errorType = "battery_monitoring_error",
+                errorMessage = e.message,
+                errorContext = "BatteryMonitorWorker"
+            )
+            // Don't fail permanently
             Result.retry()
         }
     }

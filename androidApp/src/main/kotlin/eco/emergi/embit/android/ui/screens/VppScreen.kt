@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.analytics.RemoteConfigManager
 import eco.emergi.embit.domain.models.*
 import eco.emergi.embit.domain.repositories.IVppRepository
 import eco.emergi.embit.domain.repositories.VppStats
@@ -30,7 +31,18 @@ import kotlin.math.roundToInt
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VppScreen() {
+fun VppScreen(
+    remoteConfigManager: RemoteConfigManager? = null
+) {
+    // Check if VPP feature is enabled via Remote Config
+    val isVppEnabled = remoteConfigManager?.isVppEnabled() ?: true
+
+    if (!isVppEnabled) {
+        // Show feature disabled screen
+        VppDisabledScreen()
+        return
+    }
+
     val scope = rememberCoroutineScope()
 
     // Get dependencies from Koin
@@ -521,6 +533,56 @@ private fun LoadingContent() {
 private fun formatTimestamp(timestamp: Long): String {
     val format = SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault())
     return format.format(Date(timestamp))
+}
+
+@Composable
+private fun VppDisabledScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.ElectricBolt,
+                contentDescription = null,
+                modifier = Modifier.size(96.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Feature Temporarily Unavailable",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Grid participation features are currently disabled. This may be due to system maintenance or regional availability.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Check back later or contact support if you believe this is an error.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
 @Composable

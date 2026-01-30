@@ -152,14 +152,51 @@ All ViewModels use:
 
 ### Dependency Injection
 
+**Dual DI Framework Architecture**:
+The app uses **both** Hilt and Koin to separate concerns:
+
 **Shared Module (Koin)**:
 - `SharedModule`: Common dependencies (repository, use cases)
 - `platformModule()`: Platform-specific implementations (expect/actual)
+- All domain/data layer dependencies (multiplatform code)
 
 **Android Module (Hilt)**:
 - `@HiltAndroidApp` on EmbitApplication
 - WorkManager integration via `@HiltWorker`
+- Android-specific dependencies (Firebase, Android services)
 - Coexists with Koin for shared dependencies
+
+**⚠️ CRITICAL: Hilt/Koin Boundary**
+
+**DO NOT** use `@Inject` in `EmbitApplication` for classes that depend on Koin dependencies!
+
+Hilt **cannot** resolve Koin dependencies → **Runtime crash on app startup**
+
+**Safe to @Inject (Android-only dependencies)**:
+- `AnalyticsManager`
+- `CrashlyticsManager`
+- `RemoteConfigManager`
+- Any class with ONLY Android/Firebase dependencies
+
+**Must instantiate manually (have Koin dependencies)**:
+- `AppStateManager` (needs `ObserveAuthStateUseCase`, `BidirectionalSyncUseCase`)
+- `LocationBasedGridManager` (needs `IUserPreferencesRepository`)
+- Any class with use cases or repositories from `shared` module
+
+**How to manually instantiate**:
+```kotlin
+// In EmbitApplication.onCreate(), AFTER startKoin():
+appStateManager = AppStateManager(
+    context = this,
+    observeAuthStateUseCase = GlobalContext.get().get(),
+    bidirectionalSyncUseCase = GlobalContext.get().get()
+)
+```
+
+**Code References**:
+- EmbitApplication.kt:35-50 (documented DI architecture)
+- AppStateManager.kt:27 (warning comment)
+- LocationBasedGridManager.kt:32 (warning comment)
 
 ## Key Features
 

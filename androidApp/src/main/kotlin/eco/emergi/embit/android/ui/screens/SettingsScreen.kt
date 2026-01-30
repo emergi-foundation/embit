@@ -15,15 +15,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.analytics.AnalyticsManager
+import eco.emergi.embit.android.analytics.RemoteConfigManager
 import eco.emergi.embit.android.services.BatteryWorkScheduler
 import eco.emergi.embit.android.services.DataSyncScheduler
 import eco.emergi.embit.android.services.GridMonitorScheduler
+import eco.emergi.embit.android.ui.components.FeedbackDialog
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.models.EnergyProduct
 import eco.emergi.embit.domain.models.EnergyProducts
+import eco.emergi.embit.domain.models.Feedback
 import eco.emergi.embit.domain.models.SyncInterval
 import eco.emergi.embit.domain.models.SyncResult
 import eco.emergi.embit.domain.models.SyncSettings
+import eco.emergi.embit.domain.repositories.IFeedbackRepository
+import javax.inject.Inject
 import eco.emergi.embit.domain.usecases.ManageBatteryDataUseCase
 import eco.emergi.embit.domain.usecases.auth.*
 import eco.emergi.embit.domain.usecases.grid.GetEnergyProductUseCase
@@ -45,11 +51,14 @@ import java.util.*
 @Composable
 fun SettingsScreen(
     onNavigateToLogin: () -> Unit = {},
-    onNavigateToProfile: () -> Unit = {}
+    onNavigateToProfile: () -> Unit = {},
+    analyticsManager: AnalyticsManager? = null,
+    remoteConfigManager: RemoteConfigManager? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val manageDataUseCase: ManageBatteryDataUseCase = koinInject()
+    val feedbackRepository: IFeedbackRepository = koinInject()
 
     val viewModel = remember {
         SettingsViewModel(
@@ -65,6 +74,9 @@ fun SettingsScreen(
     val signOutUseCase: SignOutUseCase = koinInject()
     val getCurrentUserUseCase: GetCurrentUserUseCase = koinInject()
     val sendPasswordResetUseCase: SendPasswordResetUseCase = koinInject()
+    val signInWithGoogleUseCase: SignInWithGoogleUseCase = koinInject()
+    val isNewUserUseCase: IsNewUserUseCase = koinInject()
+    val userPreferencesRepository: eco.emergi.embit.domain.repositories.IUserPreferencesRepository = koinInject()
 
     val authViewModel = remember {
         AuthViewModel(
@@ -74,6 +86,9 @@ fun SettingsScreen(
             signOutUseCase = signOutUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             sendPasswordResetUseCase = sendPasswordResetUseCase,
+            signInWithGoogleUseCase = signInWithGoogleUseCase,
+            isNewUserUseCase = isNewUserUseCase,
+            userPreferencesRepository = userPreferencesRepository,
             viewModelScope = scope
         )
     }
@@ -108,6 +123,9 @@ fun SettingsScreen(
                 .getBoolean("notifications_enabled", true)
         )
     }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
+    var feedbackSubmitSuccess by remember { mutableStateOf(false) }
+    var feedbackSubmitError by remember { mutableStateOf<String?>(null) }
 
     // Load sync settings when authenticated
     LaunchedEffect(authState) {
@@ -127,17 +145,46 @@ fun SettingsScreen(
     LaunchedEffect(uiState) {
         when (val state = uiState) {
             is SettingsUiState.ExportSuccess -> {
+                // Log successful export
+                analyticsManager?.logDataExported(
+                    format = "json",
+                    recordCount = state.jsonData.split("\n").size
+                )
                 shareExportedData(context, state.jsonData)
                 viewModel.resetState()
             }
             is SettingsUiState.ImportSuccess -> {
+                // Log successful import
+                analyticsManager?.logDataImported(
+                    format = "json",
+                    recordCount = state.recordCount,
+                    success = true
+                )
                 viewModel.resetState()
             }
             is SettingsUiState.CleanupSuccess -> {
+                // Log successful cleanup
+                analyticsManager?.logDataCleanup(
+                    deletedCount = state.deletedCount,
+                    timePeriod = "90_days"
+                )
                 viewModel.resetState()
             }
             is SettingsUiState.ClearAllSuccess -> {
+                // Log successful clear all
+                analyticsManager?.logDataCleanup(
+                    deletedCount = 0, // Unknown count for clear all
+                    timePeriod = "all"
+                )
                 viewModel.resetState()
+            }
+            is SettingsUiState.Error -> {
+                // Log error
+                analyticsManager?.logError(
+                    errorType = "settings_operation_failed",
+                    errorMessage = state.message,
+                    errorContext = "SettingsScreen"
+                )
             }
             else -> {}
         }
@@ -536,6 +583,14 @@ fun SettingsScreen(
                                 } else {
                                     GridMonitorScheduler.cancelPeriodicMonitoring(context)
                                 }
+
+                                // Log grid monitoring toggle
+                                analyticsManager?.logCustomEvent(
+                                    eventName = "grid_monitoring_toggled",
+                                    params = mapOf(
+                                        "enabled" to enabled
+                                    )
+                                )
                             }
                         )
                     }
@@ -593,18 +648,22 @@ fun SettingsScreen(
                     Text("Data Management", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Button(
-                        onClick = { viewModel.exportData() },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = uiState !is SettingsUiState.ExportingData
-                    ) {
-                        Icon(Icons.Default.FileDownload, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Export Data")
+                    // Export Data (only if enabled via remote config)
+                    if (remoteConfigManager?.isDataExportEnabled() != false) {
+                        Button(
+                            onClick = { viewModel.exportData() },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = uiState !is SettingsUiState.ExportingData
+                        ) {
+                            Icon(Icons.Default.FileDownload, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Export Data")
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    // Cleanup Old Data
                     OutlinedButton(
                         onClick = { viewModel.cleanupOldData(90) },
                         modifier = Modifier.fillMaxWidth(),
@@ -617,6 +676,7 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Clear All Data
                     OutlinedButton(
                         onClick = { showClearDialog = true },
                         modifier = Modifier.fillMaxWidth(),
@@ -630,6 +690,142 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            // Feedback Section (only show if enabled in remote config)
+            if (remoteConfigManager?.isFeedbackEnabled() != false) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Feedback", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            "We'd love to hear from you! Share your experience, report bugs, or suggest new features.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedButton(
+                            onClick = { showFeedbackDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = authState is AuthState.Authenticated
+                        ) {
+                            Icon(Icons.Default.Star, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Rate Embit")
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showFeedbackDialog = true },
+                                modifier = Modifier.weight(1f),
+                                enabled = authState is AuthState.Authenticated
+                            ) {
+                                Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Report Bug", style = MaterialTheme.typography.bodySmall)
+                            }
+
+                            OutlinedButton(
+                                onClick = { showFeedbackDialog = true },
+                                modifier = Modifier.weight(1f),
+                                enabled = authState is AuthState.Authenticated
+                            ) {
+                                Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Suggest", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+
+                        if (authState !is AuthState.Authenticated) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Sign in to submit feedback",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+
+                        // Show success/error messages
+                        if (feedbackSubmitSuccess) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "✓ Thank you for your feedback!",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+
+                        feedbackSubmitError?.let { error ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Failed to submit feedback: $error",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Privacy Settings Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Privacy & Data", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "Control what data Embit collects and how it's used",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            // TODO: Navigate to privacy settings / consent screen
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PrivacyTip, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Manage Privacy Settings")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            // TODO: Open privacy policy link (https://embit.eco/privacy)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Policy, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Privacy Policy")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // About Section
             Card(
@@ -661,6 +857,14 @@ fun SettingsScreen(
                                     selectedEnergyProduct = product
                                     scope.launch {
                                         setEnergyProductUseCase(product)
+                                        // Log energy product selection
+                                        analyticsManager?.logCustomEvent(
+                                            eventName = "energy_product_selected",
+                                            params = mapOf(
+                                                "product_type" to product.type.name,
+                                                "display_name" to product.displayName
+                                            )
+                                        )
                                     }
                                     showEnergyProductSelector = false
                                 },
@@ -742,6 +946,45 @@ fun SettingsScreen(
                         Text("Cancel")
                     }
                 }
+            )
+        }
+
+        // Feedback Dialog
+        if (showFeedbackDialog && authState is AuthState.Authenticated) {
+            val userId = currentUser?.uid ?: ""
+            // Get current battery status from databaseStats (if available)
+            val batteryPercentage = 0 // TODO: Get from current battery reading
+            val isCharging = false // TODO: Get from current battery reading
+
+            FeedbackDialog(
+                onDismiss = {
+                    showFeedbackDialog = false
+                    feedbackSubmitSuccess = false
+                    feedbackSubmitError = null
+                },
+                onSubmit = { feedback ->
+                    scope.launch {
+                        feedbackRepository.submitFeedback(feedback)
+                            .onSuccess { feedbackId ->
+                                feedbackSubmitSuccess = true
+                                feedbackSubmitError = null
+                                showFeedbackDialog = false
+
+                                // Log analytics event
+                                analyticsManager?.logFeedbackSubmitted(
+                                    feedbackType = feedback.type.name,
+                                    rating = feedback.rating
+                                )
+                            }
+                            .onFailure { error ->
+                                feedbackSubmitError = error.message
+                                feedbackSubmitSuccess = false
+                            }
+                    }
+                },
+                userId = userId,
+                batteryPercentage = batteryPercentage,
+                isCharging = isCharging
             )
         }
 

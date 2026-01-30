@@ -3,6 +3,7 @@ package eco.emergi.embit.presentation
 import eco.emergi.embit.domain.models.AuthResult
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.models.User
+import eco.emergi.embit.domain.repositories.IUserPreferencesRepository
 import eco.emergi.embit.domain.usecases.auth.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
@@ -19,6 +20,9 @@ class AuthViewModel(
     private val signOutUseCase: SignOutUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val sendPasswordResetUseCase: SendPasswordResetUseCase,
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
+    private val isNewUserUseCase: IsNewUserUseCase,
+    private val userPreferencesRepository: IUserPreferencesRepository,
     private val viewModelScope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Initial)
@@ -29,6 +33,9 @@ class AuthViewModel(
 
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
+
+    private val _isNewUser = MutableStateFlow(false)
+    val isNewUser: StateFlow<Boolean> = _isNewUser.asStateFlow()
 
     init {
         observeAuthState()
@@ -66,6 +73,7 @@ class AuthViewModel(
             when (val result = signInUseCase(email, password)) {
                 is AuthResult.Success -> {
                     _uiState.value = AuthUiState.Success("Signed in successfully")
+                    // Note: Initial sync will be triggered by Android app layer
                 }
                 is AuthResult.Failure -> {
                     _uiState.value = AuthUiState.Error(result.message)
@@ -84,12 +92,49 @@ class AuthViewModel(
             when (val result = signUpUseCase(email, password, displayName)) {
                 is AuthResult.Success -> {
                     _uiState.value = AuthUiState.Success("Account created successfully")
+
+                    // Create default user preferences in Firestore
+                    initializeDefaultPreferences()
+                    // Note: Initial sync will be triggered by Android app layer
                 }
                 is AuthResult.Failure -> {
                     _uiState.value = AuthUiState.Error(result.message)
                 }
             }
         }
+    }
+
+    /**
+     * Sign in with Google ID token
+     */
+    fun signInWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+
+            when (val result = signInWithGoogleUseCase(idToken)) {
+                is AuthResult.Success -> {
+                    _uiState.value = AuthUiState.Success("Signed in with Google successfully")
+
+                    // Check if this is a new user
+                    _isNewUser.value = isNewUserUseCase()
+
+                    // Create default user preferences in Firestore if new user
+                    // (This also initializes preferences for existing users if they don't have any)
+                    initializeDefaultPreferences()
+                    // Note: Initial sync will be triggered by Android app layer
+                }
+                is AuthResult.Failure -> {
+                    _uiState.value = AuthUiState.Error(result.message)
+                }
+            }
+        }
+    }
+
+    /**
+     * Clear the new user flag after preferences setup is complete
+     */
+    fun clearNewUserFlag() {
+        _isNewUser.value = false
     }
 
     /**
@@ -147,6 +192,22 @@ class AuthViewModel(
      */
     fun clearUiState() {
         _uiState.value = AuthUiState.Initial
+    }
+
+    /**
+     * Initialize default preferences for new users
+     */
+    private fun initializeDefaultPreferences() {
+        viewModelScope.launch {
+            try {
+                // getUserPreferences() will automatically create defaults if none exist
+                // and save them to Firestore
+                userPreferencesRepository.getUserPreferences()
+            } catch (e: Exception) {
+                // Silently fail - don't block sign-up flow
+                // Error will be logged by repository layer
+            }
+        }
     }
 
     /**

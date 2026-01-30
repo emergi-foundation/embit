@@ -1,0 +1,22 @@
+[
+    {
+        "merged": "eco.emergi.embit.android.androidApp-stagingDebug-87:/drawable_ic_monitoring.xml.flat",
+        "source": "eco.emergi.embit.android.androidApp-main-89:/drawable/ic_monitoring.xml"
+    },
+    {
+        "merged": "eco.emergi.embit.android.androidApp-stagingDebug-87:/drawable_ic_battery_full.xml.flat",
+        "source": "eco.emergi.embit.android.androidApp-main-89:/drawable/ic_battery_full.xml"
+    },
+    {
+        "merged": "eco.emergi.embit.android.androidApp-stagingDebug-87:/drawable_ic_warning.xml.flat",
+        "source": "eco.emergi.embit.android.androidApp-main-89:/drawable/ic_warning.xml"
+    },
+    {
+        "merged": "eco.emergi.embit.android.androidApp-stagingDebug-87:/drawable_ic_google_logo.xml.flat",
+        "source": "eco.emergi.embit.android.androidApp-main-89:/drawable/ic_google_logo.xml"
+    },
+    {
+        "merged": "eco.emergi.embit.android.androidApp-stagingDebug-87:/drawable_ic_battery_alert.xml.flat",
+        "source": "eco.emergi.embit.android.androidApp-main-89:/drawable/ic_battery_alert.xml"
+    }
+]

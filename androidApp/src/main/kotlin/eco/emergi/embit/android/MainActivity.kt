@@ -9,8 +9,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
+import eco.emergi.embit.android.analytics.AnalyticsManager
+import eco.emergi.embit.android.analytics.RemoteConfigManager
 import eco.emergi.embit.android.ui.EmbitApp
 import eco.emergi.embit.android.ui.theme.EmbitTheme
+import javax.inject.Inject
 
 /**
  * Main activity for the Embit app.
@@ -18,6 +21,12 @@ import eco.emergi.embit.android.ui.theme.EmbitTheme
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var analyticsManager: AnalyticsManager
+
+    @Inject
+    lateinit var remoteConfigManager: RemoteConfigManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,7 +38,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    EmbitApp()
+                    EmbitApp(
+                        analyticsManager = analyticsManager,
+                        remoteConfigManager = remoteConfigManager
+                    )
                 }
             }
         }

@@ -411,22 +411,28 @@ class GenerateChargingRecommendationsUseCaseTest {
             statistics = stats
         }
 
-        override suspend fun calculateStatistics(startTime: Instant, endTime: Instant): Result<BatteryStatistics> {
+        override suspend fun calculateStatistics(start: Instant, end: Instant): Result<BatteryStatistics> {
             return statistics?.let { Result.success(it) }
                 ?: Result.failure(Exception("No statistics"))
         }
 
-        // Unused methods
-        override suspend fun insertReading(reading: BatteryReading) {}
-        override suspend fun getAllReadings() = flowOf<List<BatteryReading>>(emptyList())
-        override suspend fun getReadingsByTimeRange(startTime: Instant, endTime: Instant) = flowOf<List<BatteryReading>>(emptyList())
-        override suspend fun getRecentReadings(limit: Int) = flowOf<List<BatteryReading>>(emptyList())
-        override suspend fun getReadingById(id: Long): BatteryReading? = null
-        override suspend fun deleteReading(id: Long) {}
-        override suspend fun deleteAllReadings() {}
-        override suspend fun deleteReadingsByTimeRange(startTime: Instant, endTime: Instant) {}
-        override suspend fun getReadingsCount(): Long = 0
-        override suspend fun getOldestReading(): BatteryReading? = null
-        override suspend fun getLatestReading(): BatteryReading? = null
+        // Unused methods - implement with minimal stub implementations
+        override suspend fun insertReading(reading: BatteryReading): Result<Long> = Result.success(1L)
+        override suspend fun insertReadings(readings: List<BatteryReading>): Result<Unit> = Result.success(Unit)
+        override suspend fun getLatestReading(): Result<BatteryReading?> = Result.success(null)
+        override fun observeLatestReading(): Flow<BatteryReading?> = flowOf(null)
+        override suspend fun getReadingsInRange(start: Instant, end: Instant, limit: Int?): Result<List<BatteryReading>> = Result.success(emptyList())
+        override fun observeReadingsInRange(start: Instant, end: Instant): Flow<List<BatteryReading>> = flowOf(emptyList())
+        override suspend fun getDataPoints(start: Instant, end: Instant, interval: Long): Result<List<BatteryDataPoint>> = Result.success(emptyList())
+        override suspend fun calculateBatteryHealth(): Result<BatteryHealth> = Result.failure(Exception("Not implemented"))
+        override suspend fun getBatteryHealthHistory(start: Instant, end: Instant): Result<List<BatteryHealth>> = Result.success(emptyList())
+        override suspend fun deleteReadingsOlderThan(before: Instant): Result<Int> = Result.success(0)
+        override suspend fun deleteAllReadings(): Result<Unit> = Result.success(Unit)
+        override suspend fun getReadingCount(): Result<Long> = Result.success(0L)
+        override suspend fun exportToJson(): Result<String> = Result.success("")
+        override suspend fun importFromJson(json: String): Result<Int> = Result.success(0)
+        override suspend fun getUnsyncedReadings(limit: Int?): Result<List<BatteryReading>> = Result.success(emptyList())
+        override suspend fun getUnsyncedReadingsCount(): Result<Long> = Result.success(0L)
+        override suspend fun markReadingsAsSynced(readingIds: List<Long>, syncTimestamp: Long): Result<Unit> = Result.success(Unit)
     }
 }

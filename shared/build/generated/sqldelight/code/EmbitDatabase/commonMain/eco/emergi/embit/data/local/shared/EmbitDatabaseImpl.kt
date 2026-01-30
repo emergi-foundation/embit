@@ -36,7 +36,8 @@ private class EmbitDatabaseImpl(
           |    temperatureCelsius REAL,
           |    batteryPercentage INTEGER NOT NULL,
           |    batteryState TEXT NOT NULL,
-          |    chargingType TEXT
+          |    chargingType TEXT,
+          |    syncedAt INTEGER
           |)
           """.trimMargin(), 0)
       driver.execute(null,
@@ -44,6 +45,8 @@ private class EmbitDatabaseImpl(
           0)
       driver.execute(null,
           "CREATE INDEX IF NOT EXISTS idx_battery_reading_state ON BatteryReading(batteryState)", 0)
+      driver.execute(null,
+          "CREATE INDEX IF NOT EXISTS idx_battery_reading_synced ON BatteryReading(syncedAt)", 0)
       return QueryResult.Unit
     }
 

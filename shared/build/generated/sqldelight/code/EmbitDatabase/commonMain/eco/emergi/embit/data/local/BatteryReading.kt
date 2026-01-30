@@ -13,4 +13,5 @@ public data class BatteryReading(
   public val batteryPercentage: Long,
   public val batteryState: String,
   public val chargingType: String?,
+  public val syncedAt: Long?,
 )
