@@ -7,8 +7,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
-import eco.emergi.embit.android.ui.components.StatisticsCard
+import eco.emergi.embit.android.R
+import eco.emergi.embit.android.ui.components.*
 import eco.emergi.embit.domain.models.TimePeriod
 import eco.emergi.embit.domain.usecases.*
 import eco.emergi.embit.presentation.BatteryHistoryUiState
@@ -40,10 +44,20 @@ fun BatteryHistoryScreen() {
     val uiState by viewModel.uiState.collectAsState()
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
 
+    // Fetch raw battery readings for charts
+    var rawReadings by remember { mutableStateOf<List<eco.emergi.embit.domain.models.BatteryReading>>(emptyList()) }
+
+    LaunchedEffect(selectedPeriod) {
+        val result = historyUseCase(selectedPeriod)
+        result.onSuccess { readings ->
+            rawReadings = readings
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Battery History") }
+                title = { Text(stringResource(R.string.history_title), modifier = Modifier.semantics { heading() }) }
             )
         }
     ) { paddingValues ->
@@ -70,15 +84,35 @@ fun BatteryHistoryScreen() {
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = "Loading battery history"
+                            }
+                        )
                     }
                 }
                 is BatteryHistoryUiState.Success -> {
                     state.statistics?.let { stats ->
                         StatisticsCard(
                             statistics = stats,
-                            title = "Statistics for ${selectedPeriod.name}"
+                            title = "${stringResource(R.string.history_title)} - ${selectedPeriod.name}"
                         )
+                    }
+
+                    // Data Visualization Charts using REAL battery readings
+                    if (rawReadings.isNotEmpty()) {
+                        // Battery Level Over Time
+                        BatteryLevelChart(readings = rawReadings)
+
+                        // Temperature Over Time
+                        TemperatureChart(readings = rawReadings)
+
+                        // Power Consumption/Generation
+                        PowerConsumptionChart(readings = rawReadings)
+
+                        // Charging Cycles
+                        ChargingCyclesChart(readings = rawReadings)
                     }
 
                     // Trends
@@ -87,11 +121,15 @@ fun BatteryHistoryScreen() {
                     }
 
                     // Data points count
+                    val readingsCountText = pluralStringResource(R.plurals.readings_count, state.dataPoints.size, state.dataPoints.size)
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "Data Points: ${state.dataPoints.size}",
-                                style = MaterialTheme.typography.bodyLarge
+                                text = readingsCountText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.semantics {
+                                    contentDescription = "$readingsCountText in the selected time period"
+                                }
                             )
                         }
                     }
@@ -129,17 +167,26 @@ private fun PeriodSelector(
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Time Period", style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.history_time_period),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 periods.forEach { period ->
+                    val isSelected = period == selectedPeriod
                     FilterChip(
-                        selected = period == selectedPeriod,
+                        selected = isSelected,
                         onClick = { onPeriodSelected(period) },
-                        label = { Text(period.name) }
+                        label = { Text(period.name) },
+                        modifier = Modifier.semantics {
+                            role = Role.RadioButton
+                            stateDescription = if (isSelected) "Selected" else "Not selected"
+                        }
                     )
                 }
             }
@@ -154,7 +201,11 @@ private fun TrendsCard(trends: List<eco.emergi.embit.domain.models.BatteryTrend>
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Trends", style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.history_trends),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
+            )
             HorizontalDivider()
 
             trends.forEach { trend ->

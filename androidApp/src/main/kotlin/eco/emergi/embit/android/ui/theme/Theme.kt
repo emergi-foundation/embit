@@ -27,13 +27,53 @@ private val DarkColorScheme = darkColorScheme(
     tertiary = GreenTertiaryDark,
 )
 
+// High Contrast Light Color Scheme (WCAG AAA - 7:1 contrast ratio)
+private val HighContrastLightColorScheme = lightColorScheme(
+    primary = HighContrastPrimaryLight,
+    onPrimary = HighContrastBackgroundLight,
+    primaryContainer = HighContrastSecondaryLight,
+    onPrimaryContainer = HighContrastBackgroundLight,
+    secondary = HighContrastSecondaryLight,
+    onSecondary = HighContrastBackgroundLight,
+    tertiary = HighContrastTertiaryLight,
+    onTertiary = HighContrastBackgroundLight,
+    background = HighContrastBackgroundLight,
+    onBackground = HighContrastPrimaryLight,
+    surface = HighContrastSurfaceLight,
+    onSurface = HighContrastPrimaryLight,
+    error = HighContrastErrorLight,
+    onError = HighContrastBackgroundLight,
+)
+
+// High Contrast Dark Color Scheme (WCAG AAA - 7:1 contrast ratio)
+private val HighContrastDarkColorScheme = darkColorScheme(
+    primary = HighContrastPrimaryDark,
+    onPrimary = HighContrastBackgroundDark,
+    primaryContainer = HighContrastSecondaryDark,
+    onPrimaryContainer = HighContrastBackgroundDark,
+    secondary = HighContrastSecondaryDark,
+    onSecondary = HighContrastBackgroundDark,
+    tertiary = HighContrastTertiaryDark,
+    onTertiary = HighContrastBackgroundDark,
+    background = HighContrastBackgroundDark,
+    onBackground = HighContrastPrimaryDark,
+    surface = HighContrastSurfaceDark,
+    onSurface = HighContrastPrimaryDark,
+    error = HighContrastErrorDark,
+    onError = HighContrastBackgroundDark,
+)
+
 @Composable
 fun EmbitTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    highContrast: Boolean = false,  // NEW: High-contrast mode for accessibility
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
+        // High-contrast mode takes precedence over dynamic colors
+        highContrast && darkTheme -> HighContrastDarkColorScheme
+        highContrast -> HighContrastLightColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)

@@ -9,8 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.R
 import eco.emergi.embit.android.ui.theme.*
 import eco.emergi.embit.domain.models.HealthStatus
 import eco.emergi.embit.domain.repositories.IBatteryRepository
@@ -40,10 +43,16 @@ fun BatteryHealthScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Battery Health") },
+                title = { Text(stringResource(R.string.health_title), modifier = Modifier.semantics { heading() }) },
                 actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    IconButton(
+                        onClick = { viewModel.refresh() },
+                        modifier = Modifier.semantics {
+                            role = Role.Button
+                            contentDescription = "Refresh battery health data"
+                        }
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
                     }
                 }
             )
@@ -65,7 +74,12 @@ fun BatteryHealthScreen() {
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = "Loading battery health information"
+                            }
+                        )
                     }
                 }
                 is BatteryHealthUiState.Success -> {
@@ -116,19 +130,27 @@ private fun HealthScoreCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Battery Health Score",
-                style = MaterialTheme.typography.titleMedium
+                text = stringResource(R.string.health_battery_health_score),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
                 text = "$healthPercentage",
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Bold,
-                color = getHealthColor(healthStatus)
+                color = getHealthColor(healthStatus),
+                modifier = Modifier.semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = "Battery health score $healthPercentage percent"
+                }
             )
             Text(
                 text = healthStatus.name,
                 style = MaterialTheme.typography.titleMedium,
-                color = getHealthColor(healthStatus)
+                color = getHealthColor(healthStatus),
+                modifier = Modifier.semantics {
+                    contentDescription = "Health status ${healthStatus.name}"
+                }
             )
         }
     }
@@ -141,25 +163,29 @@ private fun HealthDetailsCard(health: eco.emergi.embit.domain.models.BatteryHeal
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Health Details", style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.health_details),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
+            )
             HorizontalDivider()
 
             health.chargeCount?.let {
-                DetailRow("Charge Cycles", it.toString())
+                DetailRow(stringResource(R.string.health_charge_cycles), it.toString())
             }
 
             health.averageTemperature?.let {
-                DetailRow("Avg Temperature", String.format("%.1f °C", it))
+                DetailRow(stringResource(R.string.health_avg_temperature), String.format("%.1f °C", it))
             }
 
             health.estimatedCapacityMah?.let { estimated ->
-                DetailRow("Estimated Capacity", "$estimated mAh")
+                DetailRow(stringResource(R.string.health_estimated_capacity), "$estimated mAh")
 
                 health.designCapacityMah?.let { design ->
-                    DetailRow("Design Capacity", "$design mAh")
+                    DetailRow(stringResource(R.string.health_design_capacity), "$design mAh")
 
                     health.capacityDegradation?.let { degradation ->
-                        DetailRow("Degradation", String.format("%.1f%%", degradation))
+                        DetailRow(stringResource(R.string.health_degradation), String.format("%.1f%%", degradation))
                     }
                 }
             }
@@ -174,7 +200,11 @@ private fun RecommendationsCard(recommendations: List<String>) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Recommendations", style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.health_recommendations),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
+            )
             HorizontalDivider()
 
             recommendations.forEach { recommendation ->

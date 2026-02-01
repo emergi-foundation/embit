@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
  * @property optimalChargingEnabled Whether to enable smart charging features
  * @property vppParticipationEnabled Whether to participate in Virtual Power Plant demand response
  * @property theme App theme preference ("light", "dark", "system")
+ * @property highContrastMode Enable high-contrast colors for accessibility (WCAG AAA)
  * @property updatedAt Timestamp of last update (milliseconds since epoch)
  */
 @Serializable
@@ -24,6 +25,7 @@ data class UserPreferences(
     val optimalChargingEnabled: Boolean = true,
     val vppParticipationEnabled: Boolean = true,  // Default ON for grid participation
     val theme: String = "system",
+    val highContrastMode: Boolean = false,
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     /**
@@ -38,6 +40,7 @@ data class UserPreferences(
             "optimalChargingEnabled" to optimalChargingEnabled,
             "vppParticipationEnabled" to vppParticipationEnabled,
             "theme" to theme,
+            "highContrastMode" to highContrastMode,
             "updatedAt" to updatedAt
         )
     }
@@ -66,6 +69,7 @@ data class UserPreferences(
                 optimalChargingEnabled = data["optimalChargingEnabled"] as? Boolean ?: true,
                 vppParticipationEnabled = data["vppParticipationEnabled"] as? Boolean ?: true,
                 theme = data["theme"] as? String ?: "system",
+                highContrastMode = data["highContrastMode"] as? Boolean ?: false,
                 updatedAt = (data["updatedAt"] as? Long) ?: System.currentTimeMillis()
             )
         }

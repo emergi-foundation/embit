@@ -2,9 +2,7 @@ package eco.emergi.embit.domain.usecases
 
 import eco.emergi.embit.domain.models.BatteryReading
 import eco.emergi.embit.domain.models.BatteryState
-import eco.emergi.embit.domain.repositories.IBatteryRepository
-import eco.emergi.embit.domain.models.BatteryStatistics
-import kotlinx.coroutines.flow.flowOf
+import eco.emergi.embit.test.fakes.FakeBatteryRepository
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -304,46 +302,13 @@ class PredictBatteryLifeUseCaseTest {
         timestamp: Instant,
         percentage: Int,
         isCharging: Boolean
-    ) = BatteryReading(
+    ): BatteryReading = BatteryReading(
         id = 0,
         timestamp = timestamp,
         voltageMillivolts = 3800,
-        amperageMicroamps = if (isCharging) 1000000 else -1000000,
+        amperageMicroamps = if (isCharging) 1000000L else -1000000L,
         temperatureCelsius = 25.0f,
         batteryPercentage = percentage,
-        batteryState = if (isCharging) BatteryState.Charging else BatteryState.Discharging
+        batteryState = if (isCharging) BatteryState.Charging(eco.emergi.embit.domain.models.ChargingType.AC) else BatteryState.Discharging
     )
-
-    // Fake repository
-    private class FakeBatteryRepository : IBatteryRepository {
-        private var recentReadings: List<BatteryReading> = emptyList()
-
-        fun setRecentReadings(readings: List<BatteryReading>) {
-            recentReadings = readings
-        }
-
-        override fun observeReadingsInRange(start: Instant, end: Instant): Flow<List<BatteryReading>> =
-            flowOf(recentReadings.filter { it.timestamp in start..end })
-
-        override suspend fun getReadingsInRange(start: Instant, end: Instant, limit: Int?): Result<List<BatteryReading>> =
-            Result.success(recentReadings.filter { it.timestamp in start..end })
-
-        // Unused methods - implement with minimal stub implementations
-        override suspend fun insertReading(reading: BatteryReading): Result<Long> = Result.success(1L)
-        override suspend fun insertReadings(readings: List<BatteryReading>): Result<Unit> = Result.success(Unit)
-        override suspend fun getLatestReading(): Result<BatteryReading?> = Result.success(recentReadings.lastOrNull())
-        override fun observeLatestReading(): Flow<BatteryReading?> = flowOf(recentReadings.lastOrNull())
-        override suspend fun getDataPoints(start: Instant, end: Instant, interval: Long): Result<List<BatteryDataPoint>> = Result.success(emptyList())
-        override suspend fun calculateStatistics(start: Instant, end: Instant): Result<BatteryStatistics> = Result.failure(Exception("Not implemented"))
-        override suspend fun calculateBatteryHealth(): Result<BatteryHealth> = Result.failure(Exception("Not implemented"))
-        override suspend fun getBatteryHealthHistory(start: Instant, end: Instant): Result<List<BatteryHealth>> = Result.success(emptyList())
-        override suspend fun deleteReadingsOlderThan(before: Instant): Result<Int> = Result.success(0)
-        override suspend fun deleteAllReadings(): Result<Unit> = Result.success(Unit)
-        override suspend fun getReadingCount(): Result<Long> = Result.success(recentReadings.size.toLong())
-        override suspend fun exportToJson(): Result<String> = Result.success("")
-        override suspend fun importFromJson(json: String): Result<Int> = Result.success(0)
-        override suspend fun getUnsyncedReadings(limit: Int?): Result<List<BatteryReading>> = Result.success(emptyList())
-        override suspend fun getUnsyncedReadingsCount(): Result<Long> = Result.success(0L)
-        override suspend fun markReadingsAsSynced(readingIds: List<Long>, syncTimestamp: Long): Result<Unit> = Result.success(Unit)
-    }
 }

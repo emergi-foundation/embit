@@ -11,8 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.R
 import eco.emergi.embit.android.analytics.RemoteConfigManager
 import eco.emergi.embit.domain.models.*
 import eco.emergi.embit.domain.repositories.IVppRepository
@@ -21,7 +24,7 @@ import eco.emergi.embit.domain.usecases.vpp.ParticipateInDREventUseCase
 import eco.emergi.embit.domain.vpp.VppControlExecutor
 import eco.emergi.embit.presentation.VppViewModel
 import org.koin.compose.koinInject
-import java.text.SimpleDateFormat
+import java.text.DateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
@@ -67,10 +70,16 @@ fun VppScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Grid Participation") },
+                title = { Text(stringResource(R.string.vpp_grid_participation), modifier = Modifier.semantics { heading() }) },
                 actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    IconButton(
+                        onClick = { viewModel.refresh() },
+                        modifier = Modifier.semantics {
+                            role = Role.Button
+                            contentDescription = "Refresh grid participation data"
+                        }
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
                     }
                 }
             )
@@ -178,21 +187,26 @@ private fun ParticipationToggleCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Grid Participation",
-                    style = MaterialTheme.typography.titleMedium
+                    text = stringResource(R.string.vpp_grid_participation),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() }
                 )
                 Text(
                     text = if (isEnabled)
-                        "Your device helps balance the grid during high demand"
+                        stringResource(R.string.vpp_participation_enabled_desc)
                     else
-                        "Enable to participate in demand response events",
+                        stringResource(R.string.vpp_participation_disabled_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Switch(
                 checked = isEnabled,
-                onCheckedChange = onToggle
+                onCheckedChange = onToggle,
+                modifier = Modifier.semantics {
+                    role = Role.Switch
+                    stateDescription = if (isEnabled) "Grid participation enabled" else "Grid participation disabled"
+                }
             )
         }
     }
@@ -226,7 +240,7 @@ private fun ActiveEventCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Active Grid Event",
+                    stringResource(R.string.vpp_active_grid_event),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.weight(1f))
@@ -256,7 +270,7 @@ private fun ActiveEventCard(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Your Reduction",
+                            stringResource(R.string.vpp_your_reduction),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -269,7 +283,7 @@ private fun ActiveEventCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Target",
+                            stringResource(R.string.vpp_target),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -293,7 +307,7 @@ private fun ActiveEventCard(
             val remaining = event.endTime - System.currentTimeMillis()
             val remainingMinutes = (remaining / 60_000).toInt()
             Text(
-                "Ends in $remainingMinutes minutes",
+                stringResource(R.string.vpp_ends_in, remainingMinutes),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -306,7 +320,7 @@ private fun StatsCard(stats: VppStats) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Your Impact",
+                stringResource(R.string.vpp_your_impact),
                 style = MaterialTheme.typography.titleMedium
             )
 
@@ -317,12 +331,12 @@ private fun StatsCard(stats: VppStats) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 StatItem(
-                    label = "Events",
+                    label = stringResource(R.string.vpp_events),
                     value = "${stats.completedEvents}",
                     icon = Icons.Default.EventAvailable
                 )
                 StatItem(
-                    label = "Energy Saved",
+                    label = stringResource(R.string.vpp_energy_saved),
                     value = "${stats.totalEnergyReducedWh.roundToInt()} Wh",
                     icon = Icons.Default.BatteryChargingFull
                 )
@@ -335,12 +349,12 @@ private fun StatsCard(stats: VppStats) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 StatItem(
-                    label = "CO2 Prevented",
+                    label = stringResource(R.string.vpp_co2_prevented),
                     value = "${stats.totalCO2SavedGrams.roundToInt()}g",
                     icon = Icons.Default.Eco
                 )
                 StatItem(
-                    label = "Avg Reduction",
+                    label = stringResource(R.string.vpp_avg_reduction),
                     value = "${stats.averageReductionWatts.roundToInt()}W",
                     icon = Icons.Default.TrendingDown
                 )
@@ -408,7 +422,7 @@ private fun PerformanceHistoryItem(performance: EventPerformance) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Grid Event",
+                    stringResource(R.string.vpp_grid_event),
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
@@ -418,7 +432,7 @@ private fun PerformanceHistoryItem(performance: EventPerformance) {
                 )
                 if (performance.completed) {
                     Text(
-                        "Duration: ${performance.durationMinutes} min",
+                        stringResource(R.string.vpp_duration, performance.durationMinutes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -433,7 +447,7 @@ private fun PerformanceHistoryItem(performance: EventPerformance) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        "${performance.energyReducedWh.roundToInt()} Wh saved",
+                        stringResource(R.string.vpp_wh_saved, performance.energyReducedWh.roundToInt()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -468,12 +482,12 @@ private fun EmptyHistoryCard() {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "No events yet",
+                    stringResource(R.string.vpp_no_events),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "Enable participation to join demand response events",
+                    stringResource(R.string.vpp_enable_participation_prompt),
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -526,12 +540,17 @@ private fun LoadingContent() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(
+            modifier = Modifier.semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Loading virtual power plant data"
+            }
+        )
     }
 }
 
 private fun formatTimestamp(timestamp: Long): String {
-    val format = SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault())
+    val format = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
     return format.format(Date(timestamp))
 }
 
@@ -558,7 +577,7 @@ private fun VppDisabledScreen() {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Feature Temporarily Unavailable",
+                text = stringResource(R.string.vpp_feature_unavailable),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -567,7 +586,7 @@ private fun VppDisabledScreen() {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Grid participation features are currently disabled. This may be due to system maintenance or regional availability.",
+                text = stringResource(R.string.vpp_feature_unavailable_desc),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -576,7 +595,7 @@ private fun VppDisabledScreen() {
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Check back later or contact support if you believe this is an error.",
+                text = stringResource(R.string.vpp_check_back),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

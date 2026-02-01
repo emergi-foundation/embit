@@ -3,11 +3,9 @@ package eco.emergi.embit.domain.usecases
 import eco.emergi.embit.domain.models.BatteryReading
 import eco.emergi.embit.domain.models.BatteryState
 import eco.emergi.embit.domain.models.BatteryStatistics
-import eco.emergi.embit.domain.repositories.IBatteryRepository
-import kotlinx.coroutines.flow.flowOf
+import eco.emergi.embit.test.fakes.FakeBatteryRepository
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlin.test.*
 import kotlin.time.Duration.Companion.days
 
@@ -47,9 +45,9 @@ class GenerateChargingRecommendationsUseCaseTest {
         assertTrue(result.isSuccess)
         val recommendations = result.getOrNull()!!
         assertTrue(recommendations.recommendations.isNotEmpty())
-        val unpluRec = recommendations.recommendations.first()
+        val unplugRec = recommendations.recommendations.first()
         assertEquals(RecommendationPriority.HIGH, unplugRec.priority)
-        assertTrue(unpluRec.action.contains("Unplug", ignoreCase = true))
+        assertTrue(unplugRec.action.contains("Unplug", ignoreCase = true))
     }
 
     @Test
@@ -225,11 +223,13 @@ class GenerateChargingRecommendationsUseCaseTest {
 
     @Test
     fun `excessive charging time detected`() = runTest {
-        // Given: Device plugged in too much
+        // Given: Device plugged in too much (75% of time charging)
         val reading = createReading(batteryPercentage = 50, isCharging = false)
+        val totalSeconds = 7 * 24 * 3600L // 7 days
         repository.setStatistics(
             createBaselineStatistics().copy(
-                chargingTimePercentage = 75f // >70%
+                chargingTimeSeconds = (totalSeconds * 0.75).toLong(), // 75% charging
+                dischargingTimeSeconds = (totalSeconds * 0.25).toLong() // 25% discharging
             )
         )
 
@@ -325,10 +325,12 @@ class GenerateChargingRecommendationsUseCaseTest {
             isCharging = false,
             temperature = 25.0f
         )
+        val totalSeconds = 7 * 24 * 3600L // 7 days
         repository.setStatistics(
             createBaselineStatistics().copy(
                 chargeCount = 7, // Once per day
-                chargingTimePercentage = 30f // Reasonable
+                chargingTimeSeconds = (totalSeconds * 0.30).toLong(), // 30% charging (reasonable)
+                dischargingTimeSeconds = (totalSeconds * 0.70).toLong() // 70% discharging
             )
         )
 
@@ -352,10 +354,12 @@ class GenerateChargingRecommendationsUseCaseTest {
             isCharging = true,
             temperature = 42.0f
         )
+        val totalSeconds = 7 * 24 * 3600L // 7 days
         repository.setStatistics(
             createBaselineStatistics().copy(
                 chargeCount = 30, // Too frequent
-                chargingTimePercentage = 80f // Too much
+                chargingTimeSeconds = (totalSeconds * 0.80).toLong(), // 80% charging (too much)
+                dischargingTimeSeconds = (totalSeconds * 0.20).toLong() // 20% discharging
             )
         )
 
@@ -377,62 +381,26 @@ class GenerateChargingRecommendationsUseCaseTest {
         batteryPercentage: Int,
         isCharging: Boolean,
         temperature: Float? = 30.0f
-    ) = BatteryReading(
+    ): BatteryReading = BatteryReading(
         id = 0,
         timestamp = Clock.System.now(),
         voltageMillivolts = 3800,
-        amperageMicroamps = if (isCharging) 1000000 else -1000000,
+        amperageMicroamps = if (isCharging) 1000000L else -1000000L,
         temperatureCelsius = temperature,
         batteryPercentage = batteryPercentage,
-        batteryState = if (isCharging) BatteryState.Charging else BatteryState.Discharging
+        batteryState = if (isCharging) BatteryState.Charging(eco.emergi.embit.domain.models.ChargingType.AC) else BatteryState.Discharging
     )
 
     private fun createBaselineStatistics() = BatteryStatistics(
-        totalReadings = 1000,
-        averageVoltage = 3800.0,
-        averageAmperage = -1000.0,
-        averagePowerMilliwatts = -3800.0,
+        periodStart = Clock.System.now() - 7.days,
+        periodEnd = Clock.System.now(),
+        averagePowerMilliwatts = 3800.0,
+        peakPowerMilliwatts = 5000.0,
+        totalEnergyMilliwattHours = 50000.0,
         averageTemperature = 30.0f,
-        maxTemperature = 40.0f,
-        minTemperature = 20.0f,
+        chargingTimeSeconds = 30 * 3600L, // 30% of week
+        dischargingTimeSeconds = 70 * 3600L, // 70% of week
         chargeCount = 7, // Once per day for 7 days
-        averageBatteryPercentage = 50.0,
-        chargingTimePercentage = 30f,
-        startTime = Clock.System.now() - 7.days,
-        endTime = Clock.System.now(),
-        dataPoints = emptyList()
+        averageBatteryPercentage = 50
     )
-
-    // Fake repository
-    private class FakeBatteryRepository : IBatteryRepository {
-        private var statistics: BatteryStatistics? = null
-
-        fun setStatistics(stats: BatteryStatistics?) {
-            statistics = stats
-        }
-
-        override suspend fun calculateStatistics(start: Instant, end: Instant): Result<BatteryStatistics> {
-            return statistics?.let { Result.success(it) }
-                ?: Result.failure(Exception("No statistics"))
-        }
-
-        // Unused methods - implement with minimal stub implementations
-        override suspend fun insertReading(reading: BatteryReading): Result<Long> = Result.success(1L)
-        override suspend fun insertReadings(readings: List<BatteryReading>): Result<Unit> = Result.success(Unit)
-        override suspend fun getLatestReading(): Result<BatteryReading?> = Result.success(null)
-        override fun observeLatestReading(): Flow<BatteryReading?> = flowOf(null)
-        override suspend fun getReadingsInRange(start: Instant, end: Instant, limit: Int?): Result<List<BatteryReading>> = Result.success(emptyList())
-        override fun observeReadingsInRange(start: Instant, end: Instant): Flow<List<BatteryReading>> = flowOf(emptyList())
-        override suspend fun getDataPoints(start: Instant, end: Instant, interval: Long): Result<List<BatteryDataPoint>> = Result.success(emptyList())
-        override suspend fun calculateBatteryHealth(): Result<BatteryHealth> = Result.failure(Exception("Not implemented"))
-        override suspend fun getBatteryHealthHistory(start: Instant, end: Instant): Result<List<BatteryHealth>> = Result.success(emptyList())
-        override suspend fun deleteReadingsOlderThan(before: Instant): Result<Int> = Result.success(0)
-        override suspend fun deleteAllReadings(): Result<Unit> = Result.success(Unit)
-        override suspend fun getReadingCount(): Result<Long> = Result.success(0L)
-        override suspend fun exportToJson(): Result<String> = Result.success("")
-        override suspend fun importFromJson(json: String): Result<Int> = Result.success(0)
-        override suspend fun getUnsyncedReadings(limit: Int?): Result<List<BatteryReading>> = Result.success(emptyList())
-        override suspend fun getUnsyncedReadingsCount(): Result<Long> = Result.success(0L)
-        override suspend fun markReadingsAsSynced(readingIds: List<Long>, syncTimestamp: Long): Result<Unit> = Result.success(Unit)
-    }
 }

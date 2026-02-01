@@ -56,6 +56,15 @@ class BatteryNotificationHelper @Inject constructor(
                 ).apply {
                     description = "Ongoing battery monitoring notification"
                     setShowBadge(false)
+                },
+                NotificationChannel(
+                    CHANNEL_GRID_EVENTS,
+                    "Grid Events",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Grid demand response events and VPP notifications"
+                    enableVibration(true)
+                    enableLights(true)
                 }
             )
 
@@ -135,6 +144,31 @@ class BatteryNotificationHelper @Inject constructor(
             .build()
     }
 
+    /**
+     * Show a generic notification (used by VPP/grid event system)
+     */
+    fun showNotification(
+        title: String,
+        message: String,
+        notificationId: Int,
+        channelId: String = CHANNEL_GRID_EVENTS,
+        priority: Int = NotificationCompat.PRIORITY_HIGH
+    ) {
+        if (!hasNotificationPermission()) return
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_monitoring)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(priority)
+            .setAutoCancel(true)
+            .setContentIntent(createMainActivityPendingIntent())
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .build()
+
+        notificationManager.notify(notificationId, notification)
+    }
+
     private fun createMainActivityPendingIntent(): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -162,6 +196,7 @@ class BatteryNotificationHelper @Inject constructor(
         const val CHANNEL_BATTERY_STATUS = "battery_status"
         const val CHANNEL_BATTERY_ALERTS = "battery_alerts"
         const val CHANNEL_MONITORING = "battery_monitoring"
+        const val CHANNEL_GRID_EVENTS = "grid_events"
 
         const val NOTIFICATION_ID_LOW_BATTERY = 1001
         const val NOTIFICATION_ID_FULLY_CHARGED = 1002

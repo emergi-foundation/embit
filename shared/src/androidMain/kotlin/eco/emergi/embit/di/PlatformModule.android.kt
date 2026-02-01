@@ -97,7 +97,14 @@ actual fun platformModule(): Module = module {
     // VPP Repository (Firestore)
     single<IVppRepository> {
         val userId = Firebase.auth.currentUser?.uid ?: "anonymous"
-        val userLocation = "California" // TODO: Get from user profile/settings
+        val userPrefsRepo: IUserPreferencesRepository = get()
+        // Get location from user preferences, default to CAISO_NORTH if not available
+        val userLocation = runCatching {
+            kotlinx.coroutines.runBlocking {
+                userPrefsRepo.getUserPreferences().getOrNull()?.location ?: "CAISO_NORTH"
+            }
+        }.getOrDefault("CAISO_NORTH")
+
         VppRepositoryImpl(
             firestore = Firebase.firestore,
             userId = userId,

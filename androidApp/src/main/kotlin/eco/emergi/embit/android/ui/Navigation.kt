@@ -188,6 +188,9 @@ fun EmbitApp(
                     },
                     onNavigateToProfile = {
                         navController.navigate(Screen.Profile.route)
+                    },
+                    onNavigateToPrivacySettings = {
+                        navController.navigate(Screen.AnalyticsConsent.route)
                     }
                 )
             }

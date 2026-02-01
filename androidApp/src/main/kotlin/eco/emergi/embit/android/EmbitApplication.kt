@@ -10,6 +10,7 @@ import eco.emergi.embit.android.analytics.RemoteConfigManager
 import eco.emergi.embit.android.services.AppStateManager
 import eco.emergi.embit.android.services.BatteryWorkScheduler
 import eco.emergi.embit.android.services.LocationBasedGridManager
+import eco.emergi.embit.android.services.PredictiveChargingWorker
 import eco.emergi.embit.di.platformModule
 import eco.emergi.embit.di.sharedModule
 import eco.emergi.embit.domain.models.AuthState
@@ -105,6 +106,9 @@ class EmbitApplication : Application() {
 
         // Schedule periodic battery monitoring
         BatteryWorkScheduler.schedulePeriodicMonitoring(this)
+
+        // Schedule predictive charging recommendations
+        PredictiveChargingWorker.schedule(this)
 
         // Schedule periodic charging session tracking
         BatteryWorkScheduler.scheduleChargingSessionTracking(this)

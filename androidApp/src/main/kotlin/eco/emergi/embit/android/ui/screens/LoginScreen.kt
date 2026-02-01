@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,6 +29,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import eco.emergi.embit.android.R
 import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.ui.components.GoogleSignInButton
 import eco.emergi.embit.domain.models.AuthState
@@ -102,7 +105,7 @@ fun LoginScreen(
                 } else {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = "Failed to get Google ID token",
+                            message = context.getString(R.string.error_google_id_token),
                             duration = SnackbarDuration.Short
                         )
                     }
@@ -212,19 +215,24 @@ fun LoginScreen(
             ) {
                 // App branding
                 Text(
-                    text = "Embit",
+                    text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                val taglineText = stringResource(R.string.app_tagline)
                 Text(
-                    text = "Track your energy impact",
+                    text = taglineText,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics {
+                        contentDescription = taglineText
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(48.dp))
@@ -240,28 +248,36 @@ fun LoginScreen(
                                 )
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar(
-                                    message = "Google Sign-In not available: ${e.message}",
+                                    message = context.getString(R.string.error_google_signin_unavailable, e.message ?: "Unknown error"),
                                     duration = SnackbarDuration.Short
                                 )
                             }
                         }
                     },
                     isLoading = uiState is AuthUiState.Loading,
-                    enabled = uiState !is AuthUiState.Loading
+                    enabled = uiState !is AuthUiState.Loading,
+                    modifier = Modifier.semantics {
+                        contentDescription = "Sign in with Google button"
+                        role = Role.Button
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Divider
+                val dividerText = stringResource(R.string.auth_or_continue_with_email)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HorizontalDivider(modifier = Modifier.weight(1f))
                     Text(
-                        text = "  or continue with email  ",
+                        text = dividerText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics {
+                            contentDescription = dividerText
+                        }
                     )
                     HorizontalDivider(modifier = Modifier.weight(1f))
                 }
@@ -272,9 +288,9 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text(stringResource(R.string.label_email)) },
                     leadingIcon = {
-                        Icon(Icons.Default.Email, contentDescription = "Email icon")
+                        Icon(Icons.Default.Email, contentDescription = stringResource(R.string.cd_email_icon))
                     },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -284,7 +300,11 @@ fun LoginScreen(
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = "Email input field"
+                        },
                     enabled = uiState !is AuthUiState.Loading
                 )
 
@@ -294,15 +314,15 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
+                    label = { Text(stringResource(R.string.label_password)) },
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = "Password icon")
+                        Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.cd_password_icon))
                     },
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
                                 imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                contentDescription = if (passwordVisible) stringResource(R.string.cd_hide_password) else stringResource(R.string.cd_show_password)
                             )
                         }
                     },
@@ -320,7 +340,11 @@ fun LoginScreen(
                             }
                         }
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = "Password input field, currently ${if (passwordVisible) "visible" else "hidden"}"
+                        },
                     enabled = uiState !is AuthUiState.Loading
                 )
 
@@ -329,9 +353,13 @@ fun LoginScreen(
                 // Forgot password link
                 TextButton(
                     onClick = onNavigateToForgotPassword,
-                    enabled = uiState !is AuthUiState.Loading
+                    enabled = uiState !is AuthUiState.Loading,
+                    modifier = Modifier.semantics {
+                        contentDescription = "Forgot password link"
+                        role = Role.Button
+                    }
                 ) {
-                    Text("Forgot password?")
+                    Text(stringResource(R.string.auth_forgot_password))
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -344,16 +372,25 @@ fun LoginScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .semantics {
+                            contentDescription = "Sign in button"
+                            role = Role.Button
+                        },
                     enabled = email.isNotBlank() && password.isNotBlank() && uiState !is AuthUiState.Loading
                 ) {
                     if (uiState is AuthUiState.Loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier
+                                .size(24.dp)
+                                .semantics {
+                                    liveRegion = LiveRegionMode.Polite
+                                    contentDescription = "Signing in, please wait"
+                                },
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Sign In")
+                        Text(stringResource(R.string.action_sign_in))
                     }
                 }
 
@@ -361,7 +398,7 @@ fun LoginScreen(
 
                 // Sign up link
                 Text(
-                    text = "Don't have an account?",
+                    text = stringResource(R.string.auth_no_account),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -371,21 +408,30 @@ fun LoginScreen(
                     onClick = onNavigateToSignUp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .semantics {
+                            contentDescription = "Create account button"
+                            role = Role.Button
+                        },
                     enabled = uiState !is AuthUiState.Loading
                 ) {
-                    Text("Create Account")
+                    Text(stringResource(R.string.action_create_account))
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Privacy note
+                val privacyNotice = stringResource(R.string.auth_privacy_notice)
                 Text(
-                    text = "By signing in, you agree to track and sync your battery usage data to help reduce energy consumption.",
+                    text = privacyNotice,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .semantics {
+                            contentDescription = privacyNotice
+                        }
                 )
             }
         }

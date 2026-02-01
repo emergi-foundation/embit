@@ -30,6 +30,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
+import eco.emergi.embit.android.R
 import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.ui.components.GoogleSignInButton
 import eco.emergi.embit.domain.models.AuthState
@@ -103,7 +106,7 @@ fun SignUpScreen(
                 } else {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = "Failed to get Google ID token",
+                            message = context.getString(R.string.error_google_id_token),
                             duration = SnackbarDuration.Short
                         )
                     }
@@ -176,10 +179,10 @@ fun SignUpScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create Account") },
+                title = { Text(stringResource(R.string.action_create_account)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 }
             )
@@ -201,16 +204,17 @@ fun SignUpScreen(
             ) {
                 // App branding
                 Text(
-                    text = "Join Embit",
+                    text = stringResource(R.string.auth_join_embit),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Start tracking your energy impact today",
+                    text = stringResource(R.string.auth_start_tracking),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -229,13 +233,13 @@ fun SignUpScreen(
                                 )
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar(
-                                    message = "Google Sign-In not available: ${e.message}",
+                                    message = context.getString(R.string.error_google_signin_unavailable, e.message),
                                     duration = SnackbarDuration.Short
                                 )
                             }
                         }
                     },
-                    text = "Sign up with Google",
+                    text = stringResource(R.string.auth_sign_up_with_google),
                     isLoading = uiState is AuthUiState.Loading,
                     enabled = uiState !is AuthUiState.Loading
                 )
@@ -249,7 +253,7 @@ fun SignUpScreen(
                 ) {
                     HorizontalDivider(modifier = Modifier.weight(1f))
                     Text(
-                        text = "  or use email  ",
+                        text = "  ${stringResource(R.string.auth_or_use_email)}  ",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -262,9 +266,9 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = { displayName = it },
-                    label = { Text("Display Name (Optional)") },
+                    label = { Text(stringResource(R.string.label_display_name_optional)) },
                     leadingIcon = {
-                        Icon(Icons.Default.Person, contentDescription = "Name icon")
+                        Icon(Icons.Default.Person, contentDescription = stringResource(R.string.cd_name_icon))
                     },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -274,7 +278,9 @@ fun SignUpScreen(
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Display name input field, optional" },
                     enabled = uiState !is AuthUiState.Loading
                 )
 
@@ -284,9 +290,9 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text(stringResource(R.string.label_email)) },
                     leadingIcon = {
-                        Icon(Icons.Default.Email, contentDescription = "Email icon")
+                        Icon(Icons.Default.Email, contentDescription = stringResource(R.string.cd_email_icon))
                     },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -296,25 +302,28 @@ fun SignUpScreen(
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Email address input field" },
                     enabled = uiState !is AuthUiState.Loading
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Password field
+                val passwordVisibilityDesc = if (passwordVisible) "visible" else "hidden"
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
+                    label = { Text(stringResource(R.string.label_password)) },
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = "Password icon")
+                        Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.cd_password_icon))
                     },
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
                                 imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                contentDescription = if (passwordVisible) stringResource(R.string.cd_hide_password) else stringResource(R.string.cd_show_password)
                             )
                         }
                     },
@@ -327,28 +336,32 @@ fun SignUpScreen(
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Password input field, password is $passwordVisibilityDesc" },
                     enabled = uiState !is AuthUiState.Loading,
                     supportingText = {
-                        Text("At least 6 characters")
+                        Text(stringResource(R.string.hint_password_length))
                     }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Confirm password field
+                val confirmPasswordVisibilityDesc = if (confirmPasswordVisible) "visible" else "hidden"
+                val passwordsMatch = password == confirmPassword
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm Password") },
+                    label = { Text(stringResource(R.string.label_confirm_password)) },
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = "Confirm password icon")
+                        Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.cd_confirm_password_icon))
                     },
                     trailingIcon = {
                         IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                             Icon(
                                 imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
+                                contentDescription = if (confirmPasswordVisible) stringResource(R.string.cd_hide_password) else stringResource(R.string.cd_show_password)
                             )
                         }
                     },
@@ -366,12 +379,19 @@ fun SignUpScreen(
                             }
                         }
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = "Confirm password input field, password is $confirmPasswordVisibilityDesc"
+                            if (confirmPassword.isNotBlank()) {
+                                stateDescription = if (passwordsMatch) "Passwords match" else "Passwords do not match"
+                            }
+                        },
                     enabled = uiState !is AuthUiState.Loading,
                     isError = confirmPassword.isNotBlank() && password != confirmPassword,
                     supportingText = {
                         if (confirmPassword.isNotBlank() && password != confirmPassword) {
-                            Text("Passwords do not match", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.error_passwords_dont_match), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 )
@@ -379,6 +399,7 @@ fun SignUpScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Sign up button
+                val isLoading = uiState is AuthUiState.Loading
                 Button(
                     onClick = {
                         focusManager.clearFocus()
@@ -386,20 +407,29 @@ fun SignUpScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = if (isLoading) "Creating account, please wait" else "Create account button"
+                        },
                     enabled = email.isNotBlank() &&
                              password.isNotBlank() &&
                              confirmPassword.isNotBlank() &&
                              password == confirmPassword &&
-                             uiState !is AuthUiState.Loading
+                             !isLoading
                 ) {
-                    if (uiState is AuthUiState.Loading) {
+                    if (isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier
+                                .size(24.dp)
+                                .semantics {
+                                    liveRegion = LiveRegionMode.Polite
+                                    contentDescription = "Creating account"
+                                },
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Create Account")
+                        Text(stringResource(R.string.action_create_account))
                     }
                 }
 
@@ -407,7 +437,7 @@ fun SignUpScreen(
 
                 // Terms note
                 Text(
-                    text = "By creating an account, you agree to track and sync your battery usage data to help reduce energy consumption and carbon emissions.",
+                    text = stringResource(R.string.auth_privacy_notice_signup),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

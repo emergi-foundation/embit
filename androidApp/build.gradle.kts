@@ -148,6 +148,10 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.1")
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    // Vico Charts for data visualization
+    implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-alpha.28")
+    implementation("com.patrykandpatrick.vico:core:2.0.0-alpha.28")
+
     // WorkManager
     implementation(libs.androidx.work.runtime)
 
@@ -175,6 +179,7 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.config)
+    implementation(libs.firebase.messaging)
     implementation(libs.play.services.auth)
 
     // Google Play Services

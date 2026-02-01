@@ -9,9 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.R
 import eco.emergi.embit.domain.models.AnalyticsConsent
 import eco.emergi.embit.domain.repositories.IAnalyticsRepository
 import kotlinx.coroutines.launch
@@ -84,16 +87,17 @@ fun AnalyticsConsentScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Privacy & Data",
+                text = stringResource(R.string.analytics_privacy_data),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Help us improve Embit while protecting your privacy",
+                text = stringResource(R.string.analytics_help_improve),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -112,8 +116,8 @@ fun AnalyticsConsentScreen(
                     // Analytics Toggle
                     ConsentOption(
                         icon = Icons.Default.Analytics,
-                        title = "Usage Analytics",
-                        description = "Help us understand how you use Embit to improve features and performance",
+                        title = stringResource(R.string.analytics_usage),
+                        description = stringResource(R.string.analytics_usage_desc),
                         checked = analyticsEnabled,
                         onCheckedChange = { analyticsEnabled = it },
                         recommended = true
@@ -124,8 +128,8 @@ fun AnalyticsConsentScreen(
                     // Crashlytics Toggle
                     ConsentOption(
                         icon = Icons.Default.BugReport,
-                        title = "Crash Reports",
-                        description = "Automatically send crash reports to help us fix bugs faster",
+                        title = stringResource(R.string.analytics_crash_reports),
+                        description = stringResource(R.string.analytics_crash_reports_desc),
                         checked = crashlyticsEnabled,
                         onCheckedChange = { crashlyticsEnabled = it },
                         recommended = true
@@ -136,8 +140,8 @@ fun AnalyticsConsentScreen(
                     // Personalized Recommendations Toggle
                     ConsentOption(
                         icon = Icons.Default.TipsAndUpdates,
-                        title = "Personalized Tips",
-                        description = "Get charging recommendations based on your battery usage patterns",
+                        title = stringResource(R.string.analytics_personalized_tips),
+                        description = stringResource(R.string.analytics_personalized_tips_desc),
                         checked = personalizedRecommendationsEnabled,
                         onCheckedChange = { personalizedRecommendationsEnabled = it },
                         recommended = false
@@ -148,8 +152,8 @@ fun AnalyticsConsentScreen(
                     // Anonymous Data Sharing Toggle
                     ConsentOption(
                         icon = Icons.Default.Science,
-                        title = "Anonymous Research Data",
-                        description = "Share anonymized battery health data to contribute to energy research",
+                        title = stringResource(R.string.analytics_anonymous_research),
+                        description = stringResource(R.string.analytics_anonymous_research_desc),
                         checked = anonymousDataSharingEnabled,
                         onCheckedChange = { anonymousDataSharingEnabled = it },
                         recommended = false,
@@ -178,7 +182,7 @@ fun AnalyticsConsentScreen(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Your battery data is encrypted and never sold to third parties. You can change these settings anytime in Settings.",
+                        text = stringResource(R.string.analytics_privacy_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -192,16 +196,25 @@ fun AnalyticsConsentScreen(
                 onClick = { saveConsent() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(50.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = if (isSubmitting) "Saving preferences, please wait" else "Continue with selected privacy preferences"
+                    },
                 enabled = !isSubmitting
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier
+                            .size(24.dp)
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = "Saving preferences"
+                            },
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Continue")
+                    Text(stringResource(R.string.action_continue))
                 }
             }
 
@@ -211,14 +224,14 @@ fun AnalyticsConsentScreen(
                 onClick = onSkip,
                 enabled = !isSubmitting
             ) {
-                Text("Skip for now")
+                Text(stringResource(R.string.action_skip))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Privacy Policy Link
             Text(
-                text = "By continuing, you agree to our Privacy Policy",
+                text = stringResource(R.string.analytics_privacy_policy_agree),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -274,7 +287,7 @@ private fun ConsentOption(
                         shape = MaterialTheme.shapes.small
                     ) {
                         Text(
-                            text = "Recommended",
+                            text = stringResource(R.string.analytics_recommended),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -294,7 +307,11 @@ private fun ConsentOption(
 
         Switch(
             checked = checked,
-            onCheckedChange = onCheckedChange
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.semantics {
+                role = Role.Switch
+                stateDescription = if (checked) "$title enabled" else "$title disabled"
+            }
         )
     }
 }

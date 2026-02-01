@@ -72,4 +72,12 @@ interface IUserPreferencesRepository {
      * @return Result indicating success or failure
      */
     suspend fun updateTheme(theme: String): Result<Unit>
+
+    /**
+     * Update high-contrast mode preference
+     *
+     * @param enabled Whether high-contrast mode is enabled
+     * @return Result indicating success or failure
+     */
+    suspend fun updateHighContrastMode(enabled: Boolean): Result<Unit>
 }

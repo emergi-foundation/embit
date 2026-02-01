@@ -10,9 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.R
 import eco.emergi.embit.android.services.LocationBasedGridManager
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -92,18 +95,19 @@ fun LocationPermissionScreen(
 
                 // Title
                 Text(
-                    text = "Enable Location Services",
+                    text = stringResource(R.string.permission_location_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Description
                 Text(
-                    text = "Embit uses your location to detect your local grid operator and provide accurate carbon impact calculations.",
+                    text = stringResource(R.string.permission_location_desc),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -124,15 +128,15 @@ fun LocationPermissionScreen(
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = "Why we need this:",
+                            text = stringResource(R.string.permission_why_needed),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        BulletPoint("Automatically detect your grid operator (CAISO, ERCOT, etc.)")
-                        BulletPoint("Show accurate renewable energy percentages for your region")
-                        BulletPoint("Provide personalized charging recommendations")
-                        BulletPoint("Help you reduce carbon emissions effectively")
+                        BulletPoint(stringResource(R.string.permission_detect_grid))
+                        BulletPoint(stringResource(R.string.permission_accurate_renewables))
+                        BulletPoint(stringResource(R.string.permission_personalized_recommendations))
+                        BulletPoint(stringResource(R.string.permission_reduce_carbon))
                     }
                 }
 
@@ -140,25 +144,38 @@ fun LocationPermissionScreen(
 
                 // Detection status
                 if (isDetecting) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            contentDescription = "Detecting grid region"
+                        }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Detecting your grid region...",
+                        text = stringResource(R.string.permission_detecting),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else if (detectedRegion != null) {
+                    val regionName = locationManager.getGridDisplayName(detectedRegion!!)
                     Text(
-                        text = "✓ Detected: ${locationManager.getGridDisplayName(detectedRegion!!)}",
+                        text = stringResource(R.string.permission_detected, regionName),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            contentDescription = "Grid region detected: $regionName"
+                        }
                     )
                 } else if (showError) {
                     Text(
-                        text = "Could not detect location. Using default region.",
+                        text = stringResource(R.string.permission_detection_failed),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Polite
+                        }
                     )
                 }
 
@@ -171,10 +188,14 @@ fun LocationPermissionScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Enable location permission to detect grid region"
+                        },
                     enabled = !isDetecting
                 ) {
-                    Text("Enable Location Services")
+                    Text(stringResource(R.string.permission_enable_location))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -184,14 +205,14 @@ fun LocationPermissionScreen(
                     onClick = onComplete,
                     enabled = !isDetecting
                 ) {
-                    Text("Skip for now")
+                    Text(stringResource(R.string.action_skip))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Privacy note
                 Text(
-                    text = "Your location is only used to determine your grid region and is not stored or shared.",
+                    text = stringResource(R.string.permission_privacy_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center

@@ -7,8 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.R
 
 /**
  * Google Sign-In button component following Material 3 design.
@@ -64,13 +66,12 @@ fun GoogleSignInButton(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Google logo placeholder
-                // TODO: Replace with actual Google logo drawable when available
-                Text(
-                    text = "G",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                // Google logo
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_google_logo),
+                    contentDescription = "Google logo",
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.Unspecified // Keep original colors from the drawable
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))

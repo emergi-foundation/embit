@@ -9,10 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Bolt
+import eco.emergi.embit.android.R
 import eco.emergi.embit.domain.models.EnergyProduct
 import eco.emergi.embit.domain.models.EnergyProducts
 import eco.emergi.embit.domain.repositories.IUserPreferencesRepository
@@ -66,16 +69,17 @@ fun PreferencesSetupScreen(
 
                 // Welcome header
                 Text(
-                    text = "Welcome to Embit!",
+                    text = stringResource(R.string.onboarding_welcome_exclaim),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Let's set up your preferences to track your energy impact",
+                    text = stringResource(R.string.onboarding_setup_preferences),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -85,16 +89,18 @@ fun PreferencesSetupScreen(
 
                 // Energy Product Section
                 Text(
-                    text = "Energy Product",
+                    text = stringResource(R.string.onboarding_energy_product),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { heading() }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Select your electricity plan to get accurate carbon impact calculations",
+                    text = stringResource(R.string.onboarding_energy_product_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth()
@@ -109,7 +115,12 @@ fun PreferencesSetupScreen(
                         onClick = { selectedEnergyProduct = product },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = 6.dp)
+                            .semantics {
+                                role = Role.RadioButton
+                                stateDescription = if (isSelected) "Selected" else "Not selected"
+                                contentDescription = "${product.displayName}: ${product.description}"
+                            },
                         colors = if (isSelected) {
                             CardDefaults.outlinedCardColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -213,12 +224,12 @@ fun PreferencesSetupScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "Grid Participation",
+                                        text = stringResource(R.string.onboarding_grid_participation),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Help stabilize the grid & earn rewards",
+                                        text = stringResource(R.string.onboarding_grid_participation_desc),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                                     )
@@ -226,12 +237,16 @@ fun PreferencesSetupScreen(
                             }
                             Switch(
                                 checked = vppParticipationEnabled,
-                                onCheckedChange = { vppParticipationEnabled = it }
+                                onCheckedChange = { vppParticipationEnabled = it },
+                                modifier = Modifier.semantics {
+                                    role = Role.Switch
+                                    stateDescription = if (vppParticipationEnabled) "Grid participation enabled" else "Grid participation disabled"
+                                }
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "When enabled, Embit will participate in demand response events to help balance the grid during peak times. You can turn this off anytime in Settings.",
+                            text = stringResource(R.string.onboarding_vpp_enabled_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                         )
@@ -270,16 +285,25 @@ fun PreferencesSetupScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = if (isSaving) "Saving preferences, please wait" else "Get started with Embit"
+                        },
                     enabled = !isSaving
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier
+                                .size(24.dp)
+                                .semantics {
+                                    liveRegion = LiveRegionMode.Polite
+                                    contentDescription = "Saving preferences"
+                                },
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Get Started")
+                        Text(stringResource(R.string.action_get_started))
                     }
                 }
 
@@ -293,14 +317,14 @@ fun PreferencesSetupScreen(
                     },
                     enabled = !isSaving
                 ) {
-                    Text("Skip for now")
+                    Text(stringResource(R.string.action_skip))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Info text
                 Text(
-                    text = "You can change these settings later in the Settings screen",
+                    text = stringResource(R.string.onboarding_change_later),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

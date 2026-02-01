@@ -2,6 +2,7 @@ package eco.emergi.embit.android.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,9 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.R
 import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.android.analytics.RemoteConfigManager
 import eco.emergi.embit.android.services.BatteryWorkScheduler
@@ -41,7 +46,7 @@ import eco.emergi.embit.presentation.SettingsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import java.text.SimpleDateFormat
+import java.text.DateFormat
 import java.util.*
 
 /**
@@ -52,6 +57,7 @@ import java.util.*
 fun SettingsScreen(
     onNavigateToLogin: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
+    onNavigateToPrivacySettings: () -> Unit = {},
     analyticsManager: AnalyticsManager? = null,
     remoteConfigManager: RemoteConfigManager? = null
 ) {
@@ -66,6 +72,31 @@ fun SettingsScreen(
             viewModelScope = scope
         )
     }
+
+    // Get battery monitor use cases for real-time battery data
+    val monitorBatteryUseCase: eco.emergi.embit.domain.usecases.MonitorBatteryUseCase = koinInject()
+    val getBatteryHistoryUseCase: eco.emergi.embit.domain.usecases.GetBatteryHistoryUseCase = koinInject()
+    val calculateStatisticsUseCase: eco.emergi.embit.domain.usecases.CalculateBatteryStatisticsUseCase = koinInject()
+    val predictBatteryLifeUseCase: eco.emergi.embit.domain.usecases.PredictBatteryLifeUseCase = koinInject()
+    val generateChargingRecommendationsUseCase: eco.emergi.embit.domain.usecases.GenerateChargingRecommendationsUseCase = koinInject()
+    val observeGridStatusUseCase: eco.emergi.embit.domain.usecases.grid.ObserveGridStatusUseCase = koinInject()
+    val getChargingRecommendationUseCase: eco.emergi.embit.domain.usecases.grid.GetChargingRecommendationUseCase = koinInject()
+
+    val batteryMonitorViewModel = remember {
+        eco.emergi.embit.presentation.BatteryMonitorViewModel(
+            monitorBatteryUseCase = monitorBatteryUseCase,
+            getBatteryHistoryUseCase = getBatteryHistoryUseCase,
+            calculateStatisticsUseCase = calculateStatisticsUseCase,
+            predictBatteryLifeUseCase = predictBatteryLifeUseCase,
+            generateChargingRecommendationsUseCase = generateChargingRecommendationsUseCase,
+            observeGridStatusUseCase = observeGridStatusUseCase,
+            getChargingRecommendationUseCase = getChargingRecommendationUseCase,
+            viewModelScope = scope
+        )
+    }
+
+    // Collect current battery reading
+    val currentBatteryReading by batteryMonitorViewModel.currentReading.collectAsState()
 
     // Get auth use cases from Koin
     val observeAuthStateUseCase: ObserveAuthStateUseCase = koinInject()
@@ -126,6 +157,10 @@ fun SettingsScreen(
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var feedbackSubmitSuccess by remember { mutableStateOf(false) }
     var feedbackSubmitError by remember { mutableStateOf<String?>(null) }
+
+    // Observe user preferences for high-contrast mode
+    val userPreferences by userPreferencesRepository.observeUserPreferences()
+        .collectAsState(initial = null)
 
     // Load sync settings when authenticated
     LaunchedEffect(authState) {
@@ -193,7 +228,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") }
+                title = { Text(stringResource(R.string.settings_title), modifier = Modifier.semantics { heading() }) }
             )
         }
     ) { paddingValues ->
@@ -201,7 +236,37 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .onKeyEvent { event ->
+                    // Handle keyboard shortcuts
+                    if (event.type == KeyEventType.KeyDown) {
+                        when {
+                            // Ctrl+E: Export data
+                            event.isCtrlPressed && event.key == Key.E -> {
+                                if (remoteConfigManager?.isDataExportEnabled() != false &&
+                                    uiState !is SettingsUiState.ExportingData) {
+                                    viewModel.exportData()
+                                }
+                                true
+                            }
+                            // Ctrl+S: Sync now
+                            event.isCtrlPressed && event.key == Key.S -> {
+                                if (authState is eco.emergi.embit.domain.models.AuthState.Authenticated &&
+                                    !isSyncing) {
+                                    scope.launch {
+                                        isSyncing = true
+                                        syncBatteryDataUseCase()
+                                        isSyncing = false
+                                    }
+                                }
+                                true
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Monitoring Settings
@@ -212,7 +277,11 @@ fun SettingsScreen(
                     .padding(top = 16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Monitoring Settings", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.settings_monitoring),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() }
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
@@ -221,9 +290,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Background Monitoring")
+                            Text(stringResource(R.string.settings_background_monitoring))
                             Text(
-                                "Collect battery data every 15 minutes",
+                                stringResource(R.string.settings_background_monitoring_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -237,6 +306,10 @@ fun SettingsScreen(
                                     BatteryWorkScheduler.cancelPeriodicMonitoring(context)
                                 }
                                 isMonitoringEnabled = enabled
+                            },
+                            modifier = Modifier.semantics {
+                                role = Role.Switch
+                                stateDescription = if (isMonitoringEnabled) "Background monitoring enabled" else "Background monitoring disabled"
                             }
                         )
                     }
@@ -250,7 +323,11 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Account", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.settings_account),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() }
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
 
                     when (authState) {
@@ -278,7 +355,7 @@ fun SettingsScreen(
                                         }
                                     }
                                     TextButton(onClick = onNavigateToProfile) {
-                                        Text("View Profile")
+                                        Text(stringResource(R.string.settings_view_profile))
                                     }
                                 }
                             }
@@ -287,18 +364,23 @@ fun SettingsScreen(
                             // User is not authenticated
                             Column {
                                 Text(
-                                    text = "Sign in to sync your data and access advanced features",
+                                    text = stringResource(R.string.settings_sign_in_message),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Button(
                                     onClick = onNavigateToLogin,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .semantics {
+                                            role = Role.Button
+                                            contentDescription = "Sign in to your account"
+                                        }
                                 ) {
                                     Icon(Icons.Default.Login, contentDescription = null)
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Sign In")
+                                    Text(stringResource(R.string.action_sign_in))
                                 }
                             }
                         }
@@ -307,11 +389,15 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .align(Alignment.CenterHorizontally)
+                                    .semantics {
+                                        liveRegion = LiveRegionMode.Polite
+                                        contentDescription = "Loading account information"
+                                    }
                             )
                         }
                         is AuthState.Error -> {
                             Text(
-                                text = "Unable to load account information",
+                                text = stringResource(R.string.settings_account_load_error),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -328,7 +414,11 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Data Sync", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            stringResource(R.string.settings_data_sync),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.semantics { heading() }
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
 
                         // Auto-sync toggle
@@ -338,9 +428,9 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Auto Sync")
+                                Text(stringResource(R.string.settings_auto_sync))
                                 Text(
-                                    "Automatically sync data to cloud",
+                                    stringResource(R.string.settings_auto_sync_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -359,6 +449,10 @@ fun SettingsScreen(
                                     } else {
                                         DataSyncScheduler.cancelPeriodicSync(context)
                                     }
+                                },
+                                modifier = Modifier.semantics {
+                                    role = Role.Switch
+                                    stateDescription = if (syncSettings.autoSyncEnabled) "Auto sync enabled" else "Auto sync disabled"
                                 }
                             )
                         }
@@ -372,9 +466,9 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("WiFi Only")
+                                Text(stringResource(R.string.settings_wifi_only))
                                 Text(
-                                    "Sync only when connected to WiFi",
+                                    stringResource(R.string.settings_wifi_only_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -388,7 +482,11 @@ fun SettingsScreen(
                                         saveSyncSettingsUseCase(newSettings)
                                     }
                                 },
-                                enabled = syncSettings.autoSyncEnabled
+                                enabled = syncSettings.autoSyncEnabled,
+                                modifier = Modifier.semantics {
+                                    role = Role.Switch
+                                    stateDescription = if (syncSettings.syncOnWifiOnly) "WiFi only enabled" else "WiFi only disabled"
+                                }
                             )
                         }
 
@@ -396,10 +494,10 @@ fun SettingsScreen(
 
                         // Last sync info
                         syncStatus.lastSyncTimestamp?.let { timestamp ->
-                            val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+                            val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
                             val lastSyncDate = dateFormat.format(Date(timestamp))
                             Text(
-                                text = "Last synced: $lastSyncDate",
+                                text = stringResource(R.string.settings_last_synced, lastSyncDate),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -418,7 +516,7 @@ fun SettingsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Syncing...",
+                                    text = stringResource(R.string.settings_syncing),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -460,7 +558,7 @@ fun SettingsScreen(
                         ) {
                             Icon(Icons.Default.CloudUpload, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Sync Now")
+                            Text(stringResource(R.string.settings_sync_now))
                         }
                     }
                 }
@@ -473,11 +571,15 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Energy Product", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.settings_energy_product),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() }
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        "Choose your energy source to see how clean your phone is powered",
+                        stringResource(R.string.settings_energy_product_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -514,7 +616,7 @@ fun SettingsScreen(
                             selectedEnergyProduct.fixedRenewablePercentage?.let { percentage ->
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "${percentage.toInt()}% Renewable",
+                                    text = stringResource(R.string.settings_renewable_percent, percentage.toInt()),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold
@@ -539,12 +641,12 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Smart Charging Notifications",
+                                stringResource(R.string.settings_grid_notifications),
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Get notified about optimal charging times",
+                                stringResource(R.string.settings_grid_notifications_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -560,9 +662,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Enable Notifications")
+                            Text(stringResource(R.string.settings_enable_notifications))
                             Text(
-                                "Get alerts for grid conditions",
+                                stringResource(R.string.settings_grid_alerts_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -591,6 +693,10 @@ fun SettingsScreen(
                                         "enabled" to enabled
                                     )
                                 )
+                            },
+                            modifier = Modifier.semantics {
+                                role = Role.Switch
+                                stateDescription = if (gridNotificationsEnabled) "Grid notifications enabled" else "Grid notifications disabled"
                             }
                         )
                     }
@@ -611,10 +717,7 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            "Receive notifications when:\n" +
-                            "• Grid is optimal for charging (low cost, high renewables)\n" +
-                            "• Grid stress is high (avoid charging)\n" +
-                            "• Critical grid conditions (urgent)",
+                            stringResource(R.string.settings_grid_notifications_info),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -630,10 +733,10 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Database Statistics", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.settings_database_stats), style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Total Readings: ${stats.totalReadings}")
-                        Text("Estimated Size: ${stats.estimatedSizeMB}")
+                        Text(stringResource(R.string.settings_total_readings, stats.totalReadings))
+                        Text(stringResource(R.string.settings_estimated_size, stats.estimatedSizeMB))
                     }
                 }
             }
@@ -645,7 +748,7 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Data Management", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.settings_data_management), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Export Data (only if enabled via remote config)
@@ -657,7 +760,7 @@ fun SettingsScreen(
                         ) {
                             Icon(Icons.Default.FileDownload, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Export Data")
+                            Text(stringResource(R.string.settings_export_data))
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -671,7 +774,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.CleaningServices, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Cleanup Old Data (90+ days)")
+                        Text(stringResource(R.string.settings_cleanup_old_data_days))
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -686,7 +789,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.DeleteForever, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Clear All Data")
+                        Text(stringResource(R.string.settings_clear_all_data))
                     }
                 }
             }
@@ -699,11 +802,11 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Feedback", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.settings_feedback), style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            "We'd love to hear from you! Share your experience, report bugs, or suggest new features.",
+                            stringResource(R.string.settings_feedback_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -717,7 +820,7 @@ fun SettingsScreen(
                         ) {
                             Icon(Icons.Default.Star, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Rate Embit")
+                            Text(stringResource(R.string.settings_rate_embit))
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -733,7 +836,7 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Report Bug", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.settings_report_bug), style = MaterialTheme.typography.bodySmall)
                             }
 
                             OutlinedButton(
@@ -743,14 +846,14 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Suggest", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.settings_suggest), style = MaterialTheme.typography.bodySmall)
                             }
                         }
 
                         if (authState !is AuthState.Authenticated) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Sign in to submit feedback",
+                                stringResource(R.string.settings_sign_in_to_feedback),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(start = 8.dp)
@@ -761,7 +864,7 @@ fun SettingsScreen(
                         if (feedbackSubmitSuccess) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "✓ Thank you for your feedback!",
+                                stringResource(R.string.settings_feedback_success),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(start = 8.dp)
@@ -771,7 +874,7 @@ fun SettingsScreen(
                         feedbackSubmitError?.let { error ->
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Failed to submit feedback: $error",
+                                stringResource(R.string.settings_feedback_error, error),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(start = 8.dp)
@@ -781,6 +884,65 @@ fun SettingsScreen(
                 }
             }
 
+            // Appearance Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        stringResource(R.string.settings_appearance),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        stringResource(R.string.settings_appearance_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // High Contrast Mode Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.settings_high_contrast),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                stringResource(R.string.settings_high_contrast_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = userPreferences?.highContrastMode ?: false,
+                            onCheckedChange = { enabled ->
+                                scope.launch {
+                                    userPreferencesRepository.updateHighContrastMode(enabled)
+                                }
+                            },
+                            modifier = Modifier.semantics {
+                                role = Role.Switch
+                                stateDescription = if (userPreferences?.highContrastMode == true)
+                                    "High contrast mode enabled" else "High contrast mode disabled"
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Privacy Settings Section
             Card(
                 modifier = Modifier
@@ -788,11 +950,11 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Privacy & Data", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.settings_privacy_data), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        "Control what data Embit collects and how it's used",
+                        stringResource(R.string.settings_privacy_data_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -800,27 +962,27 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedButton(
-                        onClick = {
-                            // TODO: Navigate to privacy settings / consent screen
-                        },
+                        onClick = onNavigateToPrivacySettings,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.PrivacyTip, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Manage Privacy Settings")
+                        Text(stringResource(R.string.settings_manage_privacy))
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedButton(
                         onClick = {
-                            // TODO: Open privacy policy link (https://embit.eco/privacy)
+                            // Open privacy policy in browser
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://embit.eco/privacy"))
+                            context.startActivity(intent)
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Policy, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Privacy Policy")
+                        Text(stringResource(R.string.settings_privacy_policy))
                     }
                 }
             }
@@ -835,10 +997,10 @@ fun SettingsScreen(
                     .padding(bottom = 16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("About", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.settings_about), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Embit Battery Monitor v2.0.0")
-                    Text("Built with Kotlin Multiplatform & Compose")
+                    Text(stringResource(R.string.settings_about_version))
+                    Text(stringResource(R.string.settings_about_stack))
                 }
             }
         }
@@ -847,7 +1009,7 @@ fun SettingsScreen(
         if (showEnergyProductSelector) {
             AlertDialog(
                 onDismissRequest = { showEnergyProductSelector = false },
-                title = { Text("Select Energy Product") },
+                title = { Text(stringResource(R.string.settings_select_energy_product)) },
                 text = {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         EnergyProducts.ALL_PRODUCTS.forEach { product ->
@@ -916,7 +1078,7 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showEnergyProductSelector = false }) {
-                        Text("Close")
+                        Text(stringResource(R.string.action_close))
                     }
                 }
             )
@@ -926,8 +1088,8 @@ fun SettingsScreen(
         if (showClearDialog) {
             AlertDialog(
                 onDismissRequest = { showClearDialog = false },
-                title = { Text("Clear All Data?") },
-                text = { Text("This will permanently delete all battery readings. This action cannot be undone.") },
+                title = { Text(stringResource(R.string.dialog_clear_data_title)) },
+                text = { Text(stringResource(R.string.dialog_clear_data_message)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -938,12 +1100,12 @@ fun SettingsScreen(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Clear")
+                        Text(stringResource(R.string.action_delete))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showClearDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.action_cancel))
                     }
                 }
             )
@@ -952,9 +1114,9 @@ fun SettingsScreen(
         // Feedback Dialog
         if (showFeedbackDialog && authState is AuthState.Authenticated) {
             val userId = currentUser?.uid ?: ""
-            // Get current battery status from databaseStats (if available)
-            val batteryPercentage = 0 // TODO: Get from current battery reading
-            val isCharging = false // TODO: Get from current battery reading
+            // Get current battery status from real-time battery monitoring
+            val batteryPercentage = currentBatteryReading?.batteryPercentage ?: 0
+            val isCharging = currentBatteryReading?.isCharging ?: false
 
             FeedbackDialog(
                 onDismiss = {
@@ -1022,11 +1184,11 @@ private fun shareExportedData(context: Context, jsonData: String) {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, jsonData)
             putExtra(Intent.EXTRA_SUBJECT, "Embit Battery Data Export")
-            putExtra(Intent.EXTRA_TITLE, "Battery Data - ${SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())}")
+            putExtra(Intent.EXTRA_TITLE, "Battery Data - ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.getDefault()).format(Date())}")
         }
 
         // Create chooser to show all available apps
-        val shareIntent = Intent.createChooser(sendIntent, "Share battery data via")
+        val shareIntent = Intent.createChooser(sendIntent, context.getString(R.string.settings_share_data_via))
 
         // Start the share intent
         context.startActivity(shareIntent)

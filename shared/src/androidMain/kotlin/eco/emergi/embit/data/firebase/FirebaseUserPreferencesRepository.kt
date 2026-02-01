@@ -141,6 +141,10 @@ class FirebaseUserPreferencesRepository(
         return updateField("theme", theme)
     }
 
+    override suspend fun updateHighContrastMode(enabled: Boolean): Result<Unit> {
+        return updateField("highContrastMode", enabled)
+    }
+
     /**
      * Helper function to update a single field in Firestore
      */
@@ -181,6 +185,7 @@ class FirebaseUserPreferencesRepository(
                     "notificationsEnabled" -> currentPrefs.copy(notificationsEnabled = value as Boolean)
                     "optimalChargingEnabled" -> currentPrefs.copy(optimalChargingEnabled = value as Boolean)
                     "theme" -> currentPrefs.copy(theme = value as String)
+                    "highContrastMode" -> currentPrefs.copy(highContrastMode = value as Boolean)
                     else -> currentPrefs
                 }
 

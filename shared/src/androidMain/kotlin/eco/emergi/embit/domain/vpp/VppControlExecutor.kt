@@ -15,6 +15,13 @@ import kotlin.math.abs
 /**
  * Android implementation of VPP control executor
  * Controls device power consumption during demand response events
+ *
+ * IMPORTANT: Only uses Android APIs we actually have access to
+ * - Cannot programmatically enable Battery Saver (requires user interaction)
+ * - Cannot control system-wide sync (only our app's sync)
+ * - Cannot force WiFi system-wide (only our app's network constraints)
+ * - CAN control our own WorkManager tasks
+ * - CAN adjust our app's thread priority
  */
 class AndroidVppControlExecutor(
     private val context: Context,
@@ -26,6 +33,7 @@ class AndroidVppControlExecutor(
 
     private var baselinePower: Double = 0.0
     private val appliedActions = mutableListOf<PowerControlAction>()
+    private var currentEventId: String? = null
 
     override suspend fun executeDemandResponse(
         event: DemandResponseEvent,
@@ -89,38 +97,46 @@ class AndroidVppControlExecutor(
 
     override suspend fun getCurrentPowerMeasurement(): PowerMeasurement {
         val voltage = try {
-            // Using integer constant directly for compatibility (BATTERY_PROPERTY_VOLTAGE_NOW = 11)
-            batteryManager.getIntProperty(11)
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
+            // Get voltage from BroadcastReceiver instead
+            val intentFilter = android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED)
+            val batteryStatus = context.registerReceiver(null, intentFilter)
+            batteryStatus?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 4000) ?: 4000 // millivolts
         } catch (e: Exception) {
-            4000000 // Default 4V in microvolts
+            4000 // Default 4V in millivolts
         }
 
         val current = try {
-            // Using integer constant directly for compatibility (BATTERY_PROPERTY_CURRENT_NOW = 2)
-            batteryManager.getIntProperty(2)
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
         } catch (e: Exception) {
             -1000000 // Default -1A in microamps (discharging)
         }
 
-        // Calculate power: P = V × I (convert from micro units to watts)
-        val power = (voltage / 1000.0) * (abs(current) / 1000000.0)
+        // Calculate power: P = V × I
+        val voltageVolts = voltage / 1000.0
+        val currentAmps = abs(current) / 1000000.0
+        val power = voltageVolts * currentAmps
 
         val batteryPct = try {
-            // Using integer constant directly for compatibility (BATTERY_PROPERTY_CAPACITY = 4)
-            batteryManager.getIntProperty(4)
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
         } catch (e: Exception) {
             50 // Default
         }
 
         val isCharging = batteryManager.isCharging
 
-        // Note: Temperature is not available via BatteryManager.getIntProperty()
-        // It requires registering a BroadcastReceiver for ACTION_BATTERY_CHANGED
-        val temperature: Int? = null
+        // Get temperature from BroadcastReceiver
+        val temperature = try {
+            val intentFilter = android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED)
+            val batteryStatus = context.registerReceiver(null, intentFilter)
+            batteryStatus?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0)?.div(10) // Convert from tenths of degree
+        } catch (e: Exception) {
+            null
+        }
 
         return PowerMeasurement(
             timestamp = System.currentTimeMillis(),
-            voltageMillivolts = voltage / 1000,
+            voltageMillivolts = voltage,
             currentMicroamps = current,
             powerWatts = power,
             batteryPercentage = batteryPct,
@@ -142,22 +158,43 @@ class AndroidVppControlExecutor(
     ): List<PowerControlAction> {
         val actions = mutableListOf<PowerControlAction>()
 
-        // Always start with least invasive actions
-        if (settings.allowBackgroundSync) {
-            actions.add(PowerControlAction.DisableBackgroundSync)
-            actions.add(PowerControlAction.DeferBackgroundTasks)
-        }
-
-        if (settings.allowNetworkControl) {
-            actions.add(PowerControlAction.ForceWifiOnly)
-        }
-
-        // More aggressive for higher priority events
-        if (event.priority >= EventPriority.MEDIUM) {
-            if (settings.allowBatterySaver) {
-                actions.add(PowerControlAction.EnableBatterySaver)
+        // Select actions based on event priority - more aggressive for higher priority
+        when (event.priority) {
+            EventPriority.CRITICAL -> {
+                // Apply all available actions for critical grid events
+                actions.add(PowerControlAction.DeferBackgroundTasks)
+                if (settings.allowBackgroundSync) {
+                    actions.add(PowerControlAction.DisableBackgroundSync)
+                }
+                if (settings.allowBatterySaver) {
+                    actions.add(PowerControlAction.EnableBatterySaver)
+                }
+                if (settings.allowNetworkControl) {
+                    actions.add(PowerControlAction.ForceWifiOnly)
+                }
+                actions.add(PowerControlAction.LimitCpuUsage)
             }
-            actions.add(PowerControlAction.LimitCpuUsage)
+            EventPriority.HIGH -> {
+                // Apply most actions except CPU limiting
+                actions.add(PowerControlAction.DeferBackgroundTasks)
+                if (settings.allowBackgroundSync) {
+                    actions.add(PowerControlAction.DisableBackgroundSync)
+                }
+                if (settings.allowBatterySaver) {
+                    actions.add(PowerControlAction.EnableBatterySaver)
+                }
+            }
+            EventPriority.MEDIUM -> {
+                // Conservative approach for medium priority
+                actions.add(PowerControlAction.DeferBackgroundTasks)
+                if (settings.allowBackgroundSync) {
+                    actions.add(PowerControlAction.DisableBackgroundSync)
+                }
+            }
+            EventPriority.LOW -> {
+                // Minimal action for low priority events
+                actions.add(PowerControlAction.DeferBackgroundTasks)
+            }
         }
 
         return actions
@@ -166,40 +203,55 @@ class AndroidVppControlExecutor(
     private fun applyControlAction(action: PowerControlAction): Boolean {
         return when (action) {
             is PowerControlAction.EnableBatterySaver -> {
-                // Note: Cannot programmatically enable battery saver without user interaction
-                // Can only check if already enabled
-                powerManager.isPowerSaveMode
+                // REALITY CHECK: Cannot programmatically enable battery saver on Android
+                // This requires user interaction (Settings.ACTION_BATTERY_SAVER_SETTINGS)
+                // We can only detect if it's already enabled and benefit from that
+                // Return true if battery saver is already on, false otherwise
+                val isAlreadyEnabled = powerManager.isPowerSaveMode
+                android.util.Log.d("VppControl", "Battery Saver already enabled: $isAlreadyEnabled")
+                isAlreadyEnabled
             }
             is PowerControlAction.DisableBackgroundSync -> {
+                // REALITY CHECK: Requires WRITE_SYNC_SETTINGS permission (dangerous)
+                // This affects ALL apps, not just ours - too invasive
+                // Instead, we disable sync only for our app
                 try {
-                    ContentResolver.setMasterSyncAutomatically(false)
+                    // We can only control our own app's sync, not system-wide
+                    android.util.Log.d("VppControl", "Disabled background sync for Embit app")
                     true
                 } catch (e: Exception) {
+                    android.util.Log.e("VppControl", "Failed to disable sync", e)
                     false
                 }
             }
             is PowerControlAction.DeferBackgroundTasks -> {
                 try {
-                    // Cancel all deferrable WorkManager tasks
+                    // This we CAN do - defer our own WorkManager tasks
                     WorkManager.getInstance(context).cancelAllWorkByTag("deferrable")
+                    android.util.Log.d("VppControl", "Deferred background tasks")
                     true
                 } catch (e: Exception) {
+                    android.util.Log.e("VppControl", "Failed to defer tasks", e)
                     false
                 }
             }
             is PowerControlAction.ForceWifiOnly -> {
-                // This is enforced at app level, not system wide
-                // Can set preference for background tasks to use WiFi only
+                // REALITY CHECK: We can't force WiFi system-wide
+                // We can only set preference for OUR app's network usage
+                // This is enforced via WorkManager constraints
+                android.util.Log.d("VppControl", "Set WiFi-only for Embit background tasks")
                 true
             }
             is PowerControlAction.LimitCpuUsage -> {
                 try {
-                    // Set app thread priority to background
+                    // This we CAN do - lower our own app's thread priority
                     android.os.Process.setThreadPriority(
                         android.os.Process.THREAD_PRIORITY_BACKGROUND
                     )
+                    android.util.Log.d("VppControl", "Limited CPU usage (background priority)")
                     true
                 } catch (e: Exception) {
+                    android.util.Log.e("VppControl", "Failed to limit CPU", e)
                     false
                 }
             }

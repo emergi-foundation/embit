@@ -13,13 +13,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import eco.emergi.embit.android.ui.components.BatteryReadingCard
-import eco.emergi.embit.android.ui.components.StatisticsCard
-import eco.emergi.embit.android.ui.components.BatteryLifePredictionCard
-import eco.emergi.embit.android.ui.components.ChargingRecommendationsCard
-import eco.emergi.embit.android.ui.components.GridStatusCard
+import eco.emergi.embit.android.R
+import eco.emergi.embit.android.ui.components.*
 import eco.emergi.embit.android.ui.theme.ChargingGreen
 import eco.emergi.embit.android.ui.theme.DischargingRed
 import eco.emergi.embit.domain.models.BatteryState
@@ -73,10 +73,16 @@ fun BatteryMonitorScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Battery Monitor") },
+                title = { Text(stringResource(R.string.monitor_title), modifier = Modifier.semantics { heading() }) },
                 actions = {
-                    IconButton(onClick = { viewModel.refreshStatistics() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    IconButton(
+                        onClick = { viewModel.refreshStatistics() },
+                        modifier = Modifier.semantics {
+                            role = Role.Button
+                            contentDescription = "Refresh battery statistics"
+                        }
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
                     }
                 }
             )
@@ -86,6 +92,21 @@ fun BatteryMonitorScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .onKeyEvent { event ->
+                    // Handle keyboard shortcuts
+                    if (event.type == KeyEventType.KeyDown) {
+                        when {
+                            // Ctrl+R: Refresh statistics
+                            event.isCtrlPressed && event.key == Key.R -> {
+                                viewModel.refreshStatistics()
+                                true
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                }
         ) {
             when (uiState) {
                 is BatteryMonitorUiState.Error -> {
@@ -127,6 +148,15 @@ private fun MonitoringContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Network status indicators
+        val isOffline by rememberConnectionState()
+
+        OfflineIndicator(
+            isOffline = isOffline,
+            lastSyncTimestamp = System.currentTimeMillis() - (5 * 60 * 1000), // TODO: Get real last sync time
+            pendingSyncCount = 0 // TODO: Get real pending count
+        )
+
         // Current Battery Reading Card
         currentReading?.let {
             BatteryReadingCard(reading = it)
@@ -144,8 +174,13 @@ private fun MonitoringContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        CircularProgressIndicator()
-                        Text("Waiting for battery data...")
+                        CircularProgressIndicator(
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = "Loading battery data"
+                            }
+                        )
+                        Text(stringResource(R.string.monitor_waiting_for_data))
                     }
                 }
             }
@@ -169,7 +204,7 @@ private fun MonitoringContent(
 
         // Today's Statistics Card
         todayStats?.let {
-            StatisticsCard(statistics = it, title = "Today's Statistics")
+            StatisticsCard(statistics = it, title = stringResource(R.string.monitor_current_status))
         }
     }
 }
@@ -215,11 +250,12 @@ private fun PermissionRequiredContent() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Permission Required",
-                style = MaterialTheme.typography.headlineMedium
+                text = stringResource(R.string.permission_required),
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
-                text = "Battery monitoring requires permission to access battery information.",
+                text = stringResource(R.string.permission_battery_description),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )

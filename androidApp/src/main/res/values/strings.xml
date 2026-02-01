@@ -1,37 +1,338 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- ========== App Name ========== -->
     <string name="app_name">Embit</string>
+    <string name="app_tagline">Track your energy impact</string>
 
-    <!-- Navigation -->
+    <!-- ========== Navigation ========== -->
     <string name="nav_monitor">Monitor</string>
     <string name="nav_history">History</string>
     <string name="nav_health">Health</string>
     <string name="nav_settings">Settings</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_vpp">VPP</string>
 
-    <!-- Battery States -->
+    <!-- ========== Common Actions ========== -->
+    <string name="action_sign_in">Sign In</string>
+    <string name="action_sign_up">Sign Up</string>
+    <string name="action_sign_out">Sign Out</string>
+    <string name="action_create_account">Create Account</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_skip">Skip for now</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_close">Close</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_get_started">Get Started</string>
+
+    <!-- ========== Common Labels ========== -->
+    <string name="label_email">Email</string>
+    <string name="label_password">Password</string>
+    <string name="label_display_name">Display Name</string>
+    <string name="label_display_name_optional">Display Name (Optional)</string>
+    <string name="label_confirm_password">Confirm Password</string>
+    <string name="label_yes">Yes</string>
+    <string name="label_no">No</string>
+    <string name="hint_password_length">At least 6 characters</string>
+
+    <!-- ========== Common States ========== -->
+    <string name="state_loading">Loading…</string>
+    <string name="state_error">Error</string>
+    <string name="state_success">Success</string>
+    <string name="state_empty">No data available</string>
+
+    <!-- ========== Authentication ========== -->
+    <string name="auth_tagline">Track your energy impact</string>
+    <string name="auth_join_embit">Join Embit</string>
+    <string name="auth_start_tracking">Start tracking your energy impact today</string>
+    <string name="auth_sign_up_with_google">Sign up with Google</string>
+    <string name="auth_or_use_email">or use email</string>
+    <string name="auth_or_continue_with_email">or continue with email</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_no_account">Don\'t have an account?</string>
+    <string name="auth_have_account">Already have an account?</string>
+    <string name="auth_privacy_notice">By signing in, you agree to track and sync your battery usage data to help reduce energy consumption.</string>
+    <string name="auth_privacy_notice_signup">By creating an account, you agree to track and sync your battery usage data to help reduce energy consumption and carbon emissions.</string>
+
+    <!-- Auth Errors -->
+    <string name="error_google_id_token">Failed to get Google ID token</string>
+    <string name="error_google_signin_unavailable">Google Sign-In not available: %1$s</string>
+    <string name="error_email_required">Email cannot be empty</string>
+    <string name="error_password_required">Password cannot be empty</string>
+    <string name="error_passwords_dont_match">Passwords don\'t match</string>
+    <string name="error_invalid_email">Please enter a valid email address</string>
+    <string name="error_password_too_short">Password must be at least 6 characters</string>
+
+    <!-- ========== Content Descriptions (Accessibility) ========== -->
+    <string name="cd_email_icon">Email icon</string>
+    <string name="cd_password_icon">Password icon</string>
+    <string name="cd_name_icon">Name icon</string>
+    <string name="cd_confirm_password_icon">Confirm password icon</string>
+    <string name="cd_show_password">Show password</string>
+    <string name="cd_hide_password">Hide password</string>
+    <string name="cd_google_logo">Google logo</string>
+    <string name="cd_battery_icon">Battery icon</string>
+    <string name="cd_health_icon">Health icon</string>
+    <string name="cd_history_icon">History icon</string>
+    <string name="cd_settings_icon">Settings icon</string>
+    <string name="cd_profile_icon">Profile icon</string>
+    <string name="cd_back_button">Back button</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_menu_button">Menu button</string>
+
+    <!-- ========== Battery States ========== -->
     <string name="battery_charging">Charging</string>
     <string name="battery_discharging">Discharging</string>
     <string name="battery_full">Full</string>
     <string name="battery_not_charging">Not Charging</string>
     <string name="battery_unknown">Unknown</string>
 
-    <!-- Common -->
-    <string name="refresh">Refresh</string>
-    <string name="loading">Loading…</string>
-    <string name="error">Error</string>
+    <!-- ========== Monitor Screen ========== -->
+    <string name="monitor_title">Battery Monitor</string>
+    <string name="monitor_current_status">Current Status</string>
+    <string name="monitor_waiting_for_data">Waiting for battery data…</string>
+    <string name="monitor_battery_level">%1$d%%</string>
+    <string name="monitor_voltage">Voltage: %1$s mV</string>
+    <string name="monitor_current">Current: %1$s mA</string>
+    <string name="monitor_temperature">Temperature: %1$s°C</string>
+    <string name="monitor_power">Power: %1$s W</string>
+    <string name="monitor_last_updated">Last updated: %1$s</string>
 
-    <!-- Monitor Screen -->
-    <string name="current_status">Current Status</string>
-    <string name="last_updated">Last updated: %s</string>
+    <!-- ========== History Screen ========== -->
+    <string name="history_title">Battery History</string>
+    <string name="history_time_period">Time Period</string>
+    <string name="history_trends">Trends</string>
+    <string name="history_period_hour">Hour</string>
+    <string name="history_period_day">Day</string>
+    <string name="history_period_week">Week</string>
+    <string name="history_period_month">Month</string>
+    <string name="history_no_data">No history data available for this period</string>
 
-    <!-- Settings -->
-    <string name="export_data">Export Data</string>
-    <string name="import_data">Import Data</string>
-    <string name="cleanup_old_data">Cleanup Old Data</string>
-    <string name="clear_all_data">Clear All Data</string>
-    <string name="confirm_clear_data">Are you sure you want to delete all battery data? This cannot be undone.</string>
+    <!-- ========== Health Screen ========== -->
+    <string name="health_title">Battery Health</string>
+    <string name="health_details">Health Details</string>
+    <string name="health_recommendations">Recommendations</string>
+    <string name="health_score">Health Score: %1$d%%</string>
+    <string name="health_status_excellent">Excellent</string>
+    <string name="health_status_good">Good</string>
+    <string name="health_status_fair">Fair</string>
+    <string name="health_status_poor">Poor</string>
+    <string name="health_status_critical">Critical</string>
+    <string name="health_status_unknown">Unknown</string>
+    <string name="health_no_data">Not enough data to calculate battery health</string>
+    <string name="health_battery_health_score">Battery Health Score</string>
+    <string name="health_charge_cycles">Charge Cycles</string>
+    <string name="health_avg_temperature">Avg Temperature</string>
+    <string name="health_estimated_capacity">Estimated Capacity</string>
+    <string name="health_design_capacity">Design Capacity</string>
+    <string name="health_degradation">Degradation</string>
+    <string name="history_data_points">Data Points</string>
 
-    <!-- Permissions -->
+    <!-- ========== Settings Screen ========== -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_monitoring">Monitoring Settings</string>
+    <string name="settings_background_monitoring">Background Monitoring</string>
+    <string name="settings_background_monitoring_desc">Collect battery data every 15 minutes</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_view_profile">View Profile</string>
+    <string name="settings_sign_in_message">Sign in to sync your data and access advanced features</string>
+    <string name="settings_account_load_error">Unable to load account information</string>
+    <string name="settings_data_sync">Data Sync</string>
+    <string name="settings_auto_sync">Auto Sync</string>
+    <string name="settings_auto_sync_desc">Automatically sync data to cloud</string>
+    <string name="settings_wifi_only">WiFi Only</string>
+    <string name="settings_wifi_only_desc">Sync only when connected to WiFi</string>
+    <string name="settings_last_synced">Last synced: %1$s</string>
+    <string name="settings_syncing">Syncing…</string>
+    <string name="settings_sync_now">Sync Now</string>
+    <string name="settings_energy_product">Energy Product</string>
+    <string name="settings_energy_product_desc">Choose your energy source to see how clean your phone is powered</string>
+    <string name="settings_renewable_percent">%1$d%% Renewable</string>
+    <string name="settings_grid_notifications">Smart Charging Notifications</string>
+    <string name="settings_grid_notifications_desc">Get notified about optimal charging times</string>
+    <string name="settings_enable_notifications">Enable Notifications</string>
+    <string name="settings_grid_alerts_desc">Get alerts for grid conditions</string>
+    <string name="settings_grid_notifications_info">Receive notifications when:\n• Grid is optimal for charging (low cost, high renewables)\n• Grid stress is high (avoid charging)\n• Critical grid conditions (urgent)</string>
+    <string name="settings_database_stats">Database Statistics</string>
+    <string name="settings_total_readings">Total Readings: %1$d</string>
+    <string name="settings_estimated_size">Estimated Size: %1$s</string>
+    <string name="settings_data_management">Data Management</string>
+    <string name="settings_export_data">Export Data</string>
+    <string name="settings_import_data">Import Data</string>
+    <string name="settings_cleanup_old_data">Cleanup Old Data</string>
+    <string name="settings_cleanup_old_data_days">Cleanup Old Data (90+ days)</string>
+    <string name="settings_clear_all_data">Clear All Data</string>
+    <string name="settings_feedback">Feedback</string>
+    <string name="settings_feedback_desc">We\'d love to hear from you! Share your experience, report bugs, or suggest new features.</string>
+    <string name="settings_rate_embit">Rate Embit</string>
+    <string name="settings_report_bug">Report Bug</string>
+    <string name="settings_suggest">Suggest</string>
+    <string name="settings_sign_in_to_feedback">Sign in to submit feedback</string>
+    <string name="settings_feedback_success">✓ Thank you for your feedback!</string>
+    <string name="settings_feedback_error">Failed to submit feedback: %1$s</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_desc">Customize how Embit looks</string>
+    <string name="settings_high_contrast">High Contrast Mode</string>
+    <string name="settings_high_contrast_desc">Enable high-contrast colors for better visibility (WCAG AAA - 7:1 contrast ratio)</string>
+    <string name="settings_privacy_data">Privacy &amp; Data</string>
+    <string name="settings_privacy_data_desc">Control what data Embit collects and how it\'s used</string>
+    <string name="settings_manage_privacy">Manage Privacy Settings</string>
+    <string name="settings_app_info">App Information</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_version">Embit Battery Monitor v2.0.0</string>
+    <string name="settings_about_stack">Built with Kotlin Multiplatform &amp; Compose</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_terms_of_service">Terms of Service</string>
+    <string name="settings_select_energy_product">Select Energy Product</string>
+    <string name="settings_share_data_via">Share battery data via</string>
+
+    <!-- Settings Dialogs -->
+    <string name="dialog_sign_out_title">Sign Out</string>
+    <string name="dialog_sign_out_message">Are you sure you want to sign out?</string>
+    <string name="dialog_clear_data_title">Clear All Data</string>
+    <string name="dialog_clear_data_message">Are you sure you want to delete all battery data? This cannot be undone.</string>
+    <string name="dialog_cleanup_data_title">Cleanup Old Data</string>
+    <string name="dialog_cleanup_data_message">Delete battery readings older than %1$d days?</string>
+
+    <!-- ========== Profile Screen ========== -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_email">Email: %1$s</string>
+    <string name="profile_member_since">Member since %1$s</string>
+    <string name="profile_last_sign_in">Last sign in: %1$s</string>
+    <string name="profile_account_info">Account Information</string>
+    <string name="profile_user_id">User ID</string>
+    <string name="profile_account_type">Account Type</string>
+    <string name="profile_account_type_anonymous">Anonymous</string>
+    <string name="profile_account_type_email">Email</string>
+    <string name="profile_member_since_label">Member Since</string>
+    <string name="profile_last_sign_in_label">Last Sign In</string>
+    <string name="profile_no_data">No user data available</string>
+    <string name="profile_about">Track your device\'s energy consumption and make a positive impact on the environment.</string>
+
+    <!-- ========== VPP Screen ========== -->
+    <string name="vpp_title">Virtual Power Plant</string>
+    <string name="vpp_grid_participation">Grid Participation</string>
+    <string name="vpp_enable">Enable VPP Participation</string>
+    <string name="vpp_disable">Disable VPP Participation</string>
+    <string name="vpp_participation_enabled_desc">Your device helps balance the grid during high demand</string>
+    <string name="vpp_participation_disabled_desc">Enable to participate in demand response events</string>
+    <string name="vpp_active_event">Active Event</string>
+    <string name="vpp_active_grid_event">Active Grid Event</string>
+    <string name="vpp_no_active_events">No active demand response events</string>
+    <string name="vpp_your_reduction">Your Reduction</string>
+    <string name="vpp_target">Target</string>
+    <string name="vpp_ends_in">Ends in %1$d minutes</string>
+    <string name="vpp_your_impact">Your Impact</string>
+    <string name="vpp_events">Events</string>
+    <string name="vpp_energy_saved">Energy Saved</string>
+    <string name="vpp_co2_prevented">CO2 Prevented</string>
+    <string name="vpp_avg_reduction">Avg Reduction</string>
+    <string name="vpp_performance_history">Performance History</string>
+    <string name="vpp_grid_event">Grid Event</string>
+    <string name="vpp_duration">Duration: %1$d min</string>
+    <string name="vpp_wh_saved">%1$d Wh saved</string>
+    <string name="vpp_no_events">No events yet</string>
+    <string name="vpp_enable_participation_prompt">Enable participation to join demand response events</string>
+    <string name="vpp_feature_unavailable">Feature Temporarily Unavailable</string>
+    <string name="vpp_feature_unavailable_desc">Grid participation features are currently disabled. This may be due to system maintenance or regional availability.</string>
+    <string name="vpp_check_back">Check back later or contact support if you believe this is an error.</string>
+    <string name="vpp_total_stats">Total Statistics</string>
+    <string name="vpp_energy_reduced">Energy Reduced: %1$s Wh</string>
+    <string name="vpp_co2_saved">CO2 Saved: %1$s g</string>
+
+    <!-- ========== Permissions ========== -->
     <string name="permission_required">Permission Required</string>
-    <string name="battery_permission_description">Battery monitoring requires permission to access battery information.</string>
+    <string name="permission_battery_description">Battery monitoring requires permission to access battery information.</string>
+    <string name="permission_location_title">Enable Location Services</string>
+    <string name="permission_location_description">Location is required to provide grid-specific energy data for your area.</string>
+    <string name="permission_location_desc">Embit uses your location to detect your local grid operator and provide accurate carbon impact calculations.</string>
+    <string name="permission_location_rationale">We need your location to provide accurate grid energy data and carbon intensity information for your region.</string>
+    <string name="permission_why_needed">Why we need this:</string>
+    <string name="permission_detect_grid">Automatically detect your grid operator (CAISO, ERCOT, etc.)</string>
+    <string name="permission_accurate_renewables">Show accurate renewable energy percentages for your region</string>
+    <string name="permission_personalized_recommendations">Provide personalized charging recommendations</string>
+    <string name="permission_reduce_carbon">Help you reduce carbon emissions effectively</string>
+    <string name="permission_detecting">Detecting your grid region…</string>
+    <string name="permission_detected">✓ Detected: %1$s</string>
+    <string name="permission_detection_failed">Could not detect location. Using default region.</string>
+    <string name="permission_enable_location">Enable Location Services</string>
+    <string name="permission_privacy_note">Your location is only used to determine your grid region and is not stored or shared.</string>
+
+    <!-- ========== Onboarding ========== -->
+    <string name="onboarding_welcome">Welcome to Embit</string>
+    <string name="onboarding_welcome_exclaim">Welcome to Embit!</string>
+    <string name="onboarding_preferences">Set Your Preferences</string>
+    <string name="onboarding_setup_preferences">Let\'s set up your preferences to track your energy impact</string>
+    <string name="onboarding_energy_product">Energy Product</string>
+    <string name="onboarding_energy_product_desc">Select your electricity plan to get accurate carbon impact calculations</string>
+    <string name="onboarding_grid_participation">Grid Participation</string>
+    <string name="onboarding_grid_participation_desc">Help stabilize the grid &amp; earn rewards</string>
+    <string name="onboarding_vpp_enabled_desc">When enabled, Embit will participate in demand response events to help balance the grid during peak times. You can turn this off anytime in Settings.</string>
+    <string name="onboarding_change_later">You can change these settings later in the Settings screen</string>
+    <string name="onboarding_location">Choose Your Location</string>
+    <string name="onboarding_notifications">Enable Notifications</string>
+    <string name="onboarding_complete">You\'re all set!</string>
+
+    <!-- ========== Notifications ========== -->
+    <string name="notification_low_battery">Battery Low</string>
+    <string name="notification_full_charge">Battery Fully Charged</string>
+    <string name="notification_high_temperature">Battery Temperature High</string>
+    <string name="notification_monitoring_active">Battery monitoring active</string>
+
+    <!-- ========== Data Operations ========== -->
+    <string name="data_exporting">Exporting data…</string>
+    <string name="data_importing">Importing data…</string>
+    <string name="data_export_success">Data exported successfully</string>
+    <string name="data_import_success">Imported %1$d readings</string>
+    <string name="data_cleanup_success">Deleted %1$d old readings</string>
+    <string name="data_clear_success">All data cleared</string>
+    <string name="data_error_export">Failed to export data: %1$s</string>
+    <string name="data_error_import">Failed to import data: %1$s</string>
+
+    <!-- ========== Time Formats ========== -->
+    <string name="time_just_now">Just now</string>
+    <string name="time_minutes_ago">%1$d minutes ago</string>
+    <string name="time_hours_ago">%1$d hours ago</string>
+    <string name="time_days_ago">%1$d days ago</string>
+
+    <!-- ========== Plurals ========== -->
+    <plurals name="readings_count">
+        <item quantity="one">%d reading</item>
+        <item quantity="other">%d readings</item>
+    </plurals>
+
+    <plurals name="days_count">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+
+    <plurals name="hours_count">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+
+    <!-- ========== Analytics Consent ========== -->
+    <string name="analytics_title">Analytics &amp; Privacy</string>
+    <string name="analytics_privacy_data">Privacy &amp; Data</string>
+    <string name="analytics_description">Help us improve Embit by sharing anonymous usage data.</string>
+    <string name="analytics_help_improve">Help us improve Embit while protecting your privacy</string>
+    <string name="analytics_enable">Enable Analytics</string>
+    <string name="analytics_disable">Disable Analytics</string>
+    <string name="analytics_usage">Usage Analytics</string>
+    <string name="analytics_usage_desc">Help us understand how you use Embit to improve features and performance</string>
+    <string name="analytics_crash_reports">Crash Reports</string>
+    <string name="analytics_crash_reports_desc">Automatically send crash reports to help us fix bugs faster</string>
+    <string name="analytics_personalized_tips">Personalized Tips</string>
+    <string name="analytics_personalized_tips_desc">Get charging recommendations based on your battery usage patterns</string>
+    <string name="analytics_anonymous_research">Anonymous Research Data</string>
+    <string name="analytics_anonymous_research_desc">Share anonymized battery health data to contribute to energy research</string>
+    <string name="analytics_recommended">Recommended</string>
+    <string name="analytics_privacy_note">Your battery data is encrypted and never sold to third parties. You can change these settings anytime in Settings.</string>
+    <string name="analytics_privacy_policy_agree">By continuing, you agree to our Privacy Policy</string>
+    <string name="analytics_learn_more">Learn more about what data we collect</string>
 </resources>

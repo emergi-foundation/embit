@@ -14,9 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eco.emergi.embit.android.R
 import eco.emergi.embit.android.analytics.AnalyticsManager
 import eco.emergi.embit.domain.models.AuthState
 import eco.emergi.embit.domain.usecases.auth.*
@@ -24,7 +27,7 @@ import eco.emergi.embit.presentation.AuthUiState
 import eco.emergi.embit.presentation.AuthViewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import java.text.SimpleDateFormat
+import java.text.DateFormat
 import java.util.*
 
 /**
@@ -112,8 +115,8 @@ fun ProfileScreen(
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
-            title = { Text("Sign Out") },
-            text = { Text("Are you sure you want to sign out?") },
+            title = { Text(stringResource(R.string.dialog_sign_out_title)) },
+            text = { Text(stringResource(R.string.dialog_sign_out_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -121,12 +124,12 @@ fun ProfileScreen(
                         viewModel.signOut()
                     }
                 ) {
-                    Text("Sign Out")
+                    Text(stringResource(R.string.action_sign_out))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSignOutDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )
@@ -135,10 +138,16 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text(stringResource(R.string.profile_title), modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.semantics {
+                            role = Role.Button
+                            contentDescription = "Navigate back"
+                        }
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 }
             )
@@ -153,7 +162,12 @@ fun ProfileScreen(
             when (authState) {
                 is AuthState.Loading -> {
                     CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = "Loading profile information"
+                            }
                     )
                 }
                 is AuthState.Authenticated -> {
@@ -168,15 +182,19 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(24.dp))
 
                             // User avatar (initials)
+                            val userInitials = user.getInitials()
                             Box(
                                 modifier = Modifier
                                     .size(100.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .semantics {
+                                        contentDescription = "User avatar with initials $userInitials"
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = user.getInitials(),
+                                    text = userInitials,
                                     style = MaterialTheme.typography.displayMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -215,16 +233,17 @@ fun ProfileScreen(
                                     modifier = Modifier.padding(16.dp)
                                 ) {
                                     Text(
-                                        text = "Account Information",
+                                        text = stringResource(R.string.profile_account_info),
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.semantics { heading() }
                                     )
 
                                     Spacer(modifier = Modifier.height(16.dp))
 
                                     // User ID
                                     InfoRow(
-                                        label = "User ID",
+                                        label = stringResource(R.string.profile_user_id),
                                         value = user.uid.take(12) + "..."
                                     )
 
@@ -232,18 +251,18 @@ fun ProfileScreen(
 
                                     // Account type
                                     InfoRow(
-                                        label = "Account Type",
-                                        value = if (user.isAnonymous) "Anonymous" else "Email"
+                                        label = stringResource(R.string.profile_account_type),
+                                        value = if (user.isAnonymous) stringResource(R.string.profile_account_type_anonymous) else stringResource(R.string.profile_account_type_email)
                                     )
 
                                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                                     // Created date
                                     if (user.createdAt > 0) {
-                                        val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                                        val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault())
                                         val createdDate = dateFormat.format(Date(user.createdAt))
                                         InfoRow(
-                                            label = "Member Since",
+                                            label = stringResource(R.string.profile_member_since_label),
                                             value = createdDate
                                         )
 
@@ -252,10 +271,10 @@ fun ProfileScreen(
 
                                     // Last sign in
                                     if (user.lastSignInAt > 0) {
-                                        val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                                        val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault())
                                         val lastSignIn = dateFormat.format(Date(user.lastSignInAt))
                                         InfoRow(
-                                            label = "Last Sign In",
+                                            label = stringResource(R.string.profile_last_sign_in_label),
                                             value = lastSignIn
                                         )
                                     }
@@ -265,19 +284,29 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(24.dp))
 
                             // Sign out button
+                            val isLoading = uiState is AuthUiState.Loading
                             OutlinedButton(
                                 onClick = { showSignOutDialog = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp),
-                                enabled = uiState !is AuthUiState.Loading
+                                    .height(50.dp)
+                                    .semantics {
+                                        role = Role.Button
+                                        contentDescription = if (isLoading) "Signing out, please wait" else "Sign out of your account"
+                                    },
+                                enabled = !isLoading
                             ) {
-                                if (uiState is AuthUiState.Loading) {
+                                if (isLoading) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .semantics {
+                                                liveRegion = LiveRegionMode.Polite
+                                                contentDescription = "Signing out"
+                                            }
                                     )
                                 } else {
-                                    Text("Sign Out")
+                                    Text(stringResource(R.string.action_sign_out))
                                 }
                             }
 
@@ -285,7 +314,7 @@ fun ProfileScreen(
 
                             // About section
                             Text(
-                                text = "Track your device's energy consumption and make a positive impact on the environment.",
+                                text = stringResource(R.string.profile_about),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
@@ -302,7 +331,7 @@ fun ProfileScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "No user data available",
+                                text = stringResource(R.string.profile_no_data),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
